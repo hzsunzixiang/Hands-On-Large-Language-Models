@@ -36,19 +36,21 @@ def main():
     print("正在加载模型 (首次运行需要下载)...")
     
     # 根据设备选择数据类型
-    if device == "cpu":
-        dtype = torch.float32  # CPU 用 float32
-        device_map = "cpu"
+    # MPS 在某些 PyTorch 版本 float16 有 bug，统一用 float32 更稳定
+    if device == "cuda":
+        dtype = torch.float16  # CUDA 用 float16 节省显存
+        device_map = "cuda"
     else:
-        dtype = torch.float16  # GPU 用 float16 节省显存
-        device_map = device
+        dtype = torch.float32  # CPU/MPS 用 float32
+        device_map = "cpu"  # MPS matmul 有兼容问题，退回 CPU
     
     # 加载模型
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
         device_map=device_map,
-        torch_dtype=dtype,
+        dtype=dtype,  # 新版 transformers 用 dtype 替代 torch_dtype
         trust_remote_code=True,
+        attn_implementation="eager",  # 避免 flash_attn 兼容问题
     )
     
     # 加载分词器
@@ -66,7 +68,8 @@ def main():
         tokenizer=tokenizer,
         return_full_text=False,  # 只返回生成的新内容
         max_new_tokens=200,      # 最大生成长度
-        do_sample=False          # 贪婪解码，输出确定性结果
+        do_sample=False,         # 贪婪解码，输出确定性结果
+        use_cache=False,         # 禁用 cache 避免 DynamicCache 兼容问题
     )
     
     # 4. 构建对话消息

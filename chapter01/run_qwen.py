@@ -25,12 +25,12 @@ print()
 print('正在加载模型 (首次需下载)...')
 
 # 加载模型 - MPS 有兼容性问题，使用 CPU + float32 更稳定
-# 如果想用 MPS 加速，可以尝试 torch_dtype=torch.float32
+# 如果想用 MPS 加速，可以尝试 dtype=torch.float32 + device_map='mps'
 device = 'cpu'  # MPS 在某些 PyTorch 版本有 matmul 兼容问题
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
     device_map=device,
-    torch_dtype=torch.float32,  # MPS float16 有bug，用 float32
+    dtype=torch.float32,  # 新版 transformers 用 dtype 替代 torch_dtype
     trust_remote_code=True,  # Qwen 需要设置为 True
 )
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
