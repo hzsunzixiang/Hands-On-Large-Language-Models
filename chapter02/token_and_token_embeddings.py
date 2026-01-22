@@ -274,29 +274,29 @@ def demo_song_recommendation():
         workers=4
     )
     
-    def get_recommendations(song_id, topn=5):
-        """获取歌曲推荐"""
+    def print_recommendations(song_id, topn=5):
+        """获取歌曲推荐 (与 notebook 同名函数)"""
         similar_songs = np.array(
             model.wv.most_similar(positive=str(song_id), topn=topn)
         )[:, 0]
-        return songs_df.loc[similar_songs]
+        return songs_df.iloc[[int(s) for s in similar_songs]]
     
-    # 测试推荐
+    # 测试推荐 - Metallica "Fade To Black"
     test_song_id = 2172
     print(f"\n测试歌曲 (ID={test_song_id}):")
-    print(songs_df.loc[str(test_song_id)])
+    print(songs_df.iloc[test_song_id])
     
-    print(f"\n推荐歌曲:")
-    recommendations = get_recommendations(test_song_id)
+    print(f"\n推荐歌曲 (print_recommendations({test_song_id})):")
+    recommendations = print_recommendations(test_song_id)
     print(recommendations)
     
-    # 另一个测试
+    # 另一个测试 - 2Pac "California Love"
     test_song_id2 = 842
     print(f"\n\n测试歌曲 (ID={test_song_id2}):")
-    print(songs_df.loc[str(test_song_id2)])
+    print(songs_df.iloc[test_song_id2])
     
-    print(f"\n推荐歌曲:")
-    recommendations2 = get_recommendations(test_song_id2)
+    print(f"\n推荐歌曲 (print_recommendations({test_song_id2})):")
+    recommendations2 = print_recommendations(test_song_id2)
     print(recommendations2)
 
 
@@ -328,10 +328,10 @@ def main():
     demo_sentence_embeddings()
     
     # Part 5: 传统词嵌入 (需要下载数据，约 66MB)
-    # demo_word_embeddings()
+    demo_word_embeddings()
     
     # Part 6: 歌曲推荐 (需要下载数据和训练)
-    # demo_song_recommendation()
+    demo_song_recommendation()
     
     print("\n" + "=" * 60)
     print("演示完成!")
