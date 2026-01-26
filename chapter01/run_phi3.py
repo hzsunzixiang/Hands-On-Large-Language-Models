@@ -3,6 +3,10 @@ Chapter 1 - 语言模型入门演示
 本脚本演示如何使用 Hugging Face Transformers 加载和运行大语言模型
 支持 CPU 和 GPU (CUDA/MPS) 运行
 """
+import warnings
+warnings.filterwarnings("ignore", message=".*flash-attention.*")
+warnings.filterwarnings("ignore", message=".*flash_attn.*")
+
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 import torch
 
@@ -36,13 +40,15 @@ def main():
     print("正在加载模型 (首次运行需要下载)...")
     
     # 根据设备选择数据类型
-    # MPS 在某些 PyTorch 版本 float16 有 bug，统一用 float32 更稳定
     if device == "cuda":
         dtype = torch.float16  # CUDA 用 float16 节省显存
         device_map = "cuda"
+    elif device == "mps":
+        dtype = torch.float32  # MPS 用 float32 更稳定
+        device_map = "mps"     # 尝试使用 MPS 加速
     else:
-        dtype = torch.float32  # CPU/MPS 用 float32
-        device_map = "cpu"  # MPS matmul 有兼容问题，退回 CPU
+        dtype = torch.float32
+        device_map = "cpu"
     
     # 加载模型
     model = AutoModelForCausalLM.from_pretrained(
