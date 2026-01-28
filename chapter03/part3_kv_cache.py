@@ -52,11 +52,18 @@ print("-" * 60)
 max_new_tokens = 50
 n_runs = 3
 
+# 定义清理缓存函数（支持多种设备）
+def clear_cache():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    elif torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+
 # 测试 use_cache=True
 print(f"\n测试 use_cache=True ({n_runs} 次运行)...")
 times_with_cache = []
 for i in range(n_runs):
-    torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    clear_cache()
     start = time.perf_counter()
     with torch.no_grad():
         output = model.generate(
@@ -77,7 +84,7 @@ print(f"  平均: {avg_with_cache:.3f}s")
 print(f"\n测试 use_cache=False ({n_runs} 次运行)...")
 times_without_cache = []
 for i in range(n_runs):
-    torch.cuda.empty_cache() if torch.cuda.is_available() else None
+    clear_cache()
     start = time.perf_counter()
     with torch.no_grad():
         output = model.generate(
