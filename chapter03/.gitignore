@@ -1,0 +1,18 @@
+# HTML 文件
+*.html
+
+# 环境目录
+.env/
+venv/
+env/
+
+# Jupyter 检查点
+.ipynb_checkpoints/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 数据缓存
+.cache/
