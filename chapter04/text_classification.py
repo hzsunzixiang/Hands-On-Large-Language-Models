@@ -302,6 +302,46 @@ def print_summary():
 def main():
     """主函数"""
     import torch
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Chapter 4 - 文本分类",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  python text_classification.py              # 运行全部
+  python text_classification.py --part 1     # 只加载数据
+  python text_classification.py --part 2     # 任务特定模型
+  python text_classification.py --part 3     # 嵌入+监督学习
+  python text_classification.py --part 4     # 零样本分类
+  python text_classification.py --part 5     # Flan-T5 生成模型
+  python text_classification.py --part 1,2,3 # 运行多个部分
+  python text_classification.py --summary    # 只显示总结
+        """
+    )
+    parser.add_argument(
+        "--part", "-p",
+        type=str,
+        default="all",
+        help="运行哪些部分: 1,2,3,4,5,6 或 all (默认: all)"
+    )
+    parser.add_argument(
+        "--summary", "-s",
+        action="store_true",
+        help="只显示性能对比总结"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.summary:
+        print_summary()
+        return
+    
+    # 解析要运行的部分
+    if args.part == "all":
+        parts = [1, 2, 3, 4, 5, 6]
+    else:
+        parts = [int(p.strip()) for p in args.part.split(",")]
     
     # 检测设备
     if torch.cuda.is_available():
@@ -311,28 +351,44 @@ def main():
     else:
         device = "cpu"
     print(f"使用设备: {device}")
+    print(f"将运行部分: {parts}")
     
-    # Part 1: 加载数据
-    data = load_data()
+    # Part 1: 加载数据 (其他部分都依赖这个)
+    data = None
+    if any(p in parts for p in [1, 2, 3, 4, 5, 6]):
+        data = load_data()
+        if parts == [1]:
+            return
     
     # Part 2: 任务特定模型分类
-    # 注意: 在 CPU 上运行较慢
-    task_specific_classification(data, device=device if device != "mps" else "cpu")
+    if 2 in parts:
+        task_specific_classification(data, device=device if device != "mps" else "cpu")
     
     # Part 3: 嵌入 + 监督学习
-    model, test_embeddings = embedding_supervised_classification(data)
+    model, test_embeddings = None, None
+    if 3 in parts or 4 in parts:
+        model, test_embeddings = embedding_supervised_classification(data)
     
-    # Part 4: 零样本分类
-    zero_shot_classification(data, model, test_embeddings)
+    # Part 4: 零样本分类 (依赖 Part 3 的 model 和 embeddings)
+    if 4 in parts:
+        if model is None:
+            print("\nPart 4 需要先运行 Part 3，正在加载模型...")
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+            test_embeddings = model.encode(data["test"]["text"], show_progress_bar=True)
+        zero_shot_classification(data, model, test_embeddings)
     
     # Part 5: 生成模型分类
-    generative_classification(data, device=device if device != "mps" else "cpu")
+    if 5 in parts:
+        generative_classification(data, device=device if device != "mps" else "cpu")
     
-    # Part 6: ChatGPT 演示 (仅显示代码)
-    chatgpt_classification_demo(data)
+    # Part 6: ChatGPT 演示
+    if 6 in parts:
+        chatgpt_classification_demo(data)
     
     # 总结
-    print_summary()
+    if args.part == "all":
+        print_summary()
 
 
 if __name__ == "__main__":
