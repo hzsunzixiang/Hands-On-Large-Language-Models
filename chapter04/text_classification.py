@@ -201,9 +201,10 @@ def generative_classification(data, device="cpu"):
     # 加载 Flan-T5 模型
     print("\n加载 Flan-T5-small 模型...")
     pipe = pipeline(
-        "text2text-generation",
+        "text-generation",
         model="google/flan-t5-small",
-        device=device
+        device=device,
+        max_new_tokens=10,
     )
     
     # 准备数据: 添加提示词

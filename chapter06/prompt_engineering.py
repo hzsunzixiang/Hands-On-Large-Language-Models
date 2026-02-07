@@ -39,7 +39,9 @@ def get_device():
 def load_model(device=None):
     """
     加载 Phi-3-mini-4k-instruct 模型
+    支持离线模式和镜像源
     """
+    import os
     from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
     
     print("\n" + "=" * 60)
@@ -49,23 +51,53 @@ def load_model(device=None):
     if device is None:
         device = get_device()
     
-    print("\n加载 Phi-3-mini-4k-instruct 模型...")
+    model_name = "microsoft/Phi-3-mini-4k-instruct"
+    print(f"\n加载 {model_name} 模型...")
+    
+    # 检查是否有本地缓存，自动启用离线模式
+    cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
+    model_cache = os.path.join(cache_dir, "models--microsoft--Phi-3-mini-4k-instruct")
+    
+    # 设置加载参数
+    load_kwargs = {
+        "torch_dtype": "auto",
+        "trust_remote_code": False,
+    }
+    
+    # 如果本地有缓存，优先使用离线模式
+    if os.path.exists(model_cache):
+        print("  ✓ 检测到本地缓存，使用离线模式")
+        load_kwargs["local_files_only"] = True
+    else:
+        # 没有本地缓存，尝试使用镜像源
+        print("  → 本地无缓存，尝试从网络下载...")
+        # 可以设置镜像源环境变量: export HF_ENDPOINT=https://hf-mirror.com
+        if os.environ.get("HF_ENDPOINT"):
+            print(f"  → 使用镜像源: {os.environ.get('HF_ENDPOINT')}")
     
     # 根据设备选择配置
     if device == "cuda":
-        device_map = "cuda"
+        load_kwargs["device_map"] = "cuda"
     elif device == "mps":
-        device_map = "mps"
+        load_kwargs["device_map"] = "mps"
     else:
-        device_map = "cpu"
+        load_kwargs["device_map"] = "cpu"
     
-    model = AutoModelForCausalLM.from_pretrained(
-        "microsoft/Phi-3-mini-4k-instruct",
-        device_map=device_map,
-        torch_dtype="auto",
-        trust_remote_code=False,
-    )
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/Phi-3-mini-4k-instruct")
+    try:
+        model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, 
+            local_files_only=load_kwargs.get("local_files_only", False)
+        )
+    except Exception as e:
+        print(f"\n  ✗ 加载失败: {e}")
+        print("\n  解决方案:")
+        print("  1. 从其他机器拷贝模型缓存:")
+        print(f"     rsync -avP ~/.cache/huggingface/hub/models--microsoft--Phi-3-mini-4k-instruct user@本机:~/.cache/huggingface/hub/")
+        print("  2. 或设置镜像源后重试:")
+        print("     export HF_ENDPOINT=https://hf-mirror.com")
+        print("     python prompt_engineering.py")
+        raise
     
     # 创建 pipeline
     pipe = pipeline(
