@@ -3,7 +3,7 @@ Chapter 4 - Part 5: 使用生成模型 (Flan-T5) 进行分类
 """
 
 from tqdm import tqdm
-from transformers import pipeline
+from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 from transformers.pipelines.pt_utils import KeyDataset
 
 from common import load_data, get_device, evaluate_performance
@@ -17,13 +17,19 @@ def generative_classification(data, device="cpu"):
     print("Part 5: 生成模型分类 (Flan-T5)")
     print("=" * 60)
     
-    # 加载 Flan-T5 模型
-    print("\n加载 Flan-T5-small 模型...")
+    # 加载 Flan-T5 模型 (T5 是 seq2seq 模型，使用 text2text-generation)
+    model_name = "google/flan-t5-small"
+    print(f"\n加载模型: {model_name}")
+    
+    # 手动加载模型和 tokenizer 以避免警告
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    
     pipe = pipeline(
-        "text-generation",
-        model="google/flan-t5-small",
+        "text2text-generation",
+        model=model,
+        tokenizer=tokenizer,
         device=device,
-        max_new_tokens=10,
     )
     
     # 准备数据: 添加提示词
