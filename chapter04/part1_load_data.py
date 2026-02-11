@@ -28,6 +28,31 @@ def main():
     print(f"  负面 (0): {(train_labels == 0).sum()}")
     print(f"  正面 (1): {(train_labels == 1).sum()}")
     
+    # 显示训练集示例
+    print("\n" + "-" * 40)
+    print("训练集正面评论示例 (label=1):")
+    print("-" * 40)
+    count = 0
+    for i, item in enumerate(data['train']):
+        if item['label'] == 1:  # 正面
+            print(f"[{i}] 👍 {item['text']}")
+            print()
+            count += 1
+            if count >= 3:
+                break
+    
+    print("-" * 40)
+    print("训练集负面评论示例 (label=0):")
+    print("-" * 40)
+    count = 0
+    for i, item in enumerate(data['train']):
+        if item['label'] == 0:  # 负面
+            print(f"[{i}] 👎 {item['text']}")
+            print()
+            count += 1
+            if count >= 3:
+                break
+    
     return data
 
 
