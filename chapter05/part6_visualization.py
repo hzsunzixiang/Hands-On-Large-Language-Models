@@ -3,23 +3,75 @@ Chapter 5 - Part 6: 可视化
 生成主题模型的各种可视化
 """
 
-from copy import deepcopy
+from pathlib import Path
+import numpy as np
 from umap import UMAP
 from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
 
 from common import load_data, get_device
 
+# 缓存目录 (与 part2, part3 共享)
+CACHE_DIR = Path(__file__).parent / "embeddings_cache"
 
-def create_topic_model_with_embeddings(abstracts):
-    """创建模型并返回嵌入"""
+
+def save_embeddings(embeddings: np.ndarray, abstracts: list, titles: list, 
+                    model_name: str, sample_size: int):
+    """保存嵌入到缓存"""
+    CACHE_DIR.mkdir(exist_ok=True)
+    
+    safe_model_name = model_name.replace("/", "_")
+    prefix = f"{safe_model_name}_{sample_size}"
+    
+    np.save(CACHE_DIR / f"{prefix}_embeddings.npy", embeddings)
+    np.save(CACHE_DIR / f"{prefix}_abstracts.npy", np.array(abstracts, dtype=object))
+    np.save(CACHE_DIR / f"{prefix}_titles.npy", np.array(titles, dtype=object))
+    
+    print(f"  已保存嵌入到: {CACHE_DIR / prefix}_*.npy")
+
+
+def load_cached_embeddings(model_name: str, sample_size: int):
+    """从缓存加载嵌入"""
+    safe_model_name = model_name.replace("/", "_")
+    prefix = f"{safe_model_name}_{sample_size}"
+    
+    embeddings_path = CACHE_DIR / f"{prefix}_embeddings.npy"
+    
+    if embeddings_path.exists():
+        embeddings = np.load(embeddings_path)
+        return embeddings
+    
+    return None
+
+
+def create_topic_model_with_embeddings(abstracts, titles=None, 
+                                        model_name="thenlper/gte-small", 
+                                        sample_size=5000):
+    """创建模型并返回嵌入 (带缓存)"""
     device = get_device()
     
-    print("\n加载嵌入模型...")
-    embedding_model = SentenceTransformer('thenlper/gte-small', device=device)
+    # 尝试从缓存加载
+    cached_embeddings = load_cached_embeddings(model_name, sample_size)
     
-    print("生成嵌入...")
-    embeddings = embedding_model.encode(abstracts, show_progress_bar=True, device=device)
+    if cached_embeddings is not None:
+        print(f"\n从缓存加载嵌入: {model_name} (样本数: {sample_size})")
+        print(f"嵌入维度: {cached_embeddings.shape}")
+        embeddings = cached_embeddings
+        
+        # 仍需加载模型供 BERTopic 使用
+        print("加载嵌入模型...")
+        embedding_model = SentenceTransformer(model_name, device=device)
+    else:
+        # 缓存未命中，生成新嵌入
+        print("\n加载嵌入模型...")
+        embedding_model = SentenceTransformer(model_name, device=device)
+        
+        print("生成嵌入...")
+        embeddings = embedding_model.encode(abstracts, show_progress_bar=True, device=device)
+        
+        # 保存缓存
+        if titles is not None:
+            save_embeddings(embeddings, abstracts, titles, model_name, sample_size)
     
     # 降维到 2D 用于可视化
     print("降维到 2D...")
@@ -103,11 +155,17 @@ def main():
     print("Part 6: 可视化")
     print("=" * 60)
     
-    # 加载数据
-    abstracts, titles = load_data(sample_size=5000)
+    model_name = "thenlper/gte-small"
+    sample_size = 5000
     
-    # 创建模型
-    topic_model, embeddings_2d = create_topic_model_with_embeddings(abstracts)
+    # 加载数据
+    abstracts, titles = load_data(sample_size=sample_size)
+    
+    # 创建模型 (带缓存)
+    topic_model, embeddings_2d = create_topic_model_with_embeddings(
+        abstracts, titles=titles, 
+        model_name=model_name, sample_size=sample_size
+    )
     
     # 生成各种可视化
     try:
