@@ -147,6 +147,51 @@ def inspect_clusters(abstracts, clusters, cluster_id=0, n_docs=3):
         print(f"\n{abstracts[idx][:250]}...\n")
 
 
+def visualize_clusters(embeddings_2d, clusters, save_path=None):
+    """可视化聚类结果"""
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    
+    print("\n" + "=" * 60)
+    print("Part 2.4: 可视化聚类结果")
+    print("=" * 60)
+    
+    # 创建 DataFrame
+    df = pd.DataFrame({
+        'x': embeddings_2d[:, 0],
+        'y': embeddings_2d[:, 1],
+        'cluster': clusters
+    })
+    
+    # 分离噪声点和聚类点
+    outliers_df = df[df.cluster == -1]
+    clusters_df = df[df.cluster != -1]
+    
+    # 绘图
+    plt.figure(figsize=(12, 8))
+    
+    # 绘制噪声点 (灰色)
+    plt.scatter(outliers_df.x, outliers_df.y, alpha=0.05, s=2, c="grey", label="Outliers")
+    
+    # 绘制聚类点 (彩色)
+    scatter = plt.scatter(
+        clusters_df.x, clusters_df.y, 
+        c=clusters_df.cluster.astype(int),
+        alpha=0.6, s=2, cmap='tab20b'
+    )
+    
+    plt.title("Document Clusters (UMAP + HDBSCAN)")
+    plt.axis('off')
+    
+    # 保存或显示
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"\n图片已保存到: {save_path}")
+    
+    plt.show()
+    print("\n可视化完成!")
+
+
 def main():
     model_name = "thenlper/gte-small"
     sample_size = 5000
@@ -172,6 +217,9 @@ def main():
     # 检查簇内容
     inspect_clusters(abstracts, clusters, cluster_id=0, n_docs=2)
     inspect_clusters(abstracts, clusters, cluster_id=1, n_docs=2)
+    
+    # 可视化聚类结果
+    visualize_clusters(embeddings_2d, clusters, save_path="clusters_visualization.png")
     
     return embeddings, reduced_embeddings, embeddings_2d, clusters
 
