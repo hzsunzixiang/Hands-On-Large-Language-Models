@@ -157,18 +157,31 @@ def grammar_constrained_demo():
         print("(GGUF 是量化格式，适合 CPU/低显存运行)")
         print()
         
-        # 检测 GPU 层数
-        n_gpu = -1 if torch.cuda.is_available() else 0
+        # 检测加速方式
+        # - CUDA: n_gpu_layers=-1 使用全部 GPU 层
+        # - Metal (Apple Silicon): n_gpu_layers=-1 使用 Metal 加速
+        # - CPU: n_gpu_layers=0
+        import platform
+        if torch.cuda.is_available():
+            n_gpu = -1
+            print("  使用 CUDA 加速")
+        elif platform.system() == "Darwin" and platform.processor() == "arm":
+            # Apple Silicon 可以使用 Metal 加速
+            n_gpu = -1
+            print("  使用 Metal 加速 (Apple Silicon)")
+        else:
+            n_gpu = 0
+            print("  使用 CPU")
         
         llm = Llama.from_pretrained(
             repo_id="microsoft/Phi-3-mini-4k-instruct-gguf",
-            filename="*q4_k_m.gguf",  # 使用量化版本节省内存
+            filename="Phi-3-mini-4k-instruct-q4.gguf",  # 使用量化版本节省内存
             n_gpu_layers=n_gpu,
             n_ctx=2048,
             verbose=False
         )
         
-        print("JSON Mode 生成:")
+        print("\nJSON Mode 生成:")
         print("-" * 40)
         
         # 使用 response_format 强制 JSON 输出
@@ -192,11 +205,14 @@ def grammar_constrained_demo():
     except ImportError:
         print("[跳过] llama-cpp-python 未安装")
         print()
-        print("安装命令:")
-        print("  pip install llama-cpp-python")
+        print("安装命令 (Apple Silicon Metal 加速):")
+        print("  CMAKE_ARGS='-DGGML_METAL=on' pip install llama-cpp-python")
         print()
-        print("如需 GPU 加速 (CUDA):")
+        print("安装命令 (CUDA 加速):")
         print("  CMAKE_ARGS='-DGGML_CUDA=on' pip install llama-cpp-python")
+        print()
+        print("安装命令 (纯 CPU):")
+        print("  pip install llama-cpp-python")
         
     except Exception as e:
         print(f"[错误] {e}")
