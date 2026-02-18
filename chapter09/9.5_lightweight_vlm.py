@@ -203,7 +203,12 @@ def blip_base_demo(device):
         start_time = time.time()
         
         processor = BlipProcessor.from_pretrained(model_id)
-        model = BlipForConditionalGeneration.from_pretrained(model_id)
+        
+        # MPS 上用 float16 避免中间张量超过 4GB 的 Metal 限制
+        dtype = torch.float16 if device != "cpu" else torch.float32
+        model = BlipForConditionalGeneration.from_pretrained(
+            model_id, torch_dtype=dtype
+        )
         
         if device != "cpu":
             model = model.to(device)
@@ -248,9 +253,8 @@ def blip_base_demo(device):
                 out = model.generate(
                     **inputs,
                     max_length=50,
-                    num_beams=3,
-                    temperature=0.7,
-                    do_sample=True
+                    num_beams=1,
+                    do_sample=False
                 )
             
             generation_time = time.time() - start_time
@@ -308,8 +312,8 @@ def blip_base_demo(device):
                     out = model.generate(
                         **inputs,
                         max_length=50,
-                        num_beams=2,
-                        temperature=0.6
+                        num_beams=1,
+                        do_sample=False
                     )
                 
                 # 解码
@@ -332,8 +336,8 @@ def performance_benchmark(model, processor, device):
     # 测试配置
     test_configs = [
         {"batch_size": 1, "max_length": 20, "num_beams": 1},
-        {"batch_size": 1, "max_length": 30, "num_beams": 2},
-        {"batch_size": 1, "max_length": 50, "num_beams": 3},
+        {"batch_size": 1, "max_length": 30, "num_beams": 1},
+        {"batch_size": 1, "max_length": 50, "num_beams": 1},
     ]
     
     test_image = load_image_from_url(IMAGE_URLS["car"])
@@ -363,8 +367,7 @@ def performance_benchmark(model, processor, device):
                 out = model.generate(
                     **inputs,
                     max_length=max_length,
-                    num_beams=num_beams,
-                    pad_token_id=processor.tokenizer.eos_token_id
+                    num_beams=num_beams
                 )
             
             end_time = time.time()
@@ -426,7 +429,7 @@ def batch_processing_demo(model, processor, device):
             inputs = inputs.to(device)
         
         with torch.no_grad():
-            out = model.generate(**inputs, max_length=30, num_beams=2)
+            out = model.generate(**inputs, max_length=30, num_beams=1)
         
         caption = processor.decode(out[0], skip_special_tokens=True)
         individual_captions.append(caption)
@@ -453,7 +456,7 @@ def batch_processing_demo(model, processor, device):
                 inputs = inputs.to(device)
             
             with torch.no_grad():
-                out = model.generate(**inputs, max_length=30, num_beams=2)
+                out = model.generate(**inputs, max_length=30, num_beams=1)
             
             caption = processor.decode(out[0], skip_special_tokens=True)
             batch_captions.append(caption)
