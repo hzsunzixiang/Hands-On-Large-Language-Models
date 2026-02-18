@@ -3,6 +3,7 @@
 用 SoftmaxLoss 作为损失函数，然后在 STS-B 和 MTEB Banking77 上评估。
 """
 import gc
+import time
 import torch
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer, losses
@@ -13,6 +14,8 @@ from sentence_transformers.training_args import SentenceTransformerTrainingArgum
 # ============================================================
 # 1. 数据准备 — MNLI 数据集
 # ============================================================
+total_start = time.time()
+
 print("=" * 60)
 print("1. 加载 MNLI 数据集")
 print("=" * 60)
@@ -74,6 +77,7 @@ print(f"STS-B 验证集大小: {len(val_sts)}")
 print("\n" + "=" * 60)
 print("5. 开始训练 (1 epoch)")
 print("=" * 60)
+train_start = time.time()
 
 args = SentenceTransformerTrainingArguments(
     output_dir="base_embedding_model",
@@ -95,6 +99,8 @@ trainer = SentenceTransformerTrainer(
     evaluator=evaluator
 )
 trainer.train()
+train_elapsed = time.time() - train_start
+print(f"\n训练耗时: {train_elapsed:.1f}s ({train_elapsed/60:.1f}min)")
 
 # ============================================================
 # 6. 评估 — STS-B
@@ -126,6 +132,9 @@ except ImportError:
 # ============================================================
 # 清理显存
 # ============================================================
+total_elapsed = time.time() - total_start
+print(f"\n总运行时间: {total_elapsed:.1f}s ({total_elapsed/60:.1f}min)")
+
 gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
