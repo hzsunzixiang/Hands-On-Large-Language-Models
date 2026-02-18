@@ -436,9 +436,9 @@ def performance_metrics():
     
     # 综合评分 (速度*0.3 + 内存效率*0.3 + 能力*0.4)
     memory_efficiency = [1/m for m in memory]  # 内存效率 = 1/内存使用
-    综合评分 = [s*0.3 + me*0.3 + c*0.4 for s, me, c in zip(speed, memory_efficiency, capability)]
+    overall_score = [s*0.3 + me*0.3 + c*0.4 for s, me, c in zip(speed, memory_efficiency, capability)]
     
-    ax4.bar(models, 综合评分, color=['skyblue', 'lightgreen', 'orange', 'lightcoral'])
+    ax4.bar(models, overall_score, color=['skyblue', 'lightgreen', 'orange', 'lightcoral'])
     ax4.set_title('综合评分 (速度30% + 内存效率30% + 能力40%)')
     ax4.set_ylabel('综合评分')
     
@@ -463,7 +463,7 @@ def performance_metrics():
         print(f"  推理速度: {speed[i]:.1f}x (相对CLIP)")
         print(f"  内存使用: {memory[i]:.1f}x (相对CLIP)")
         print(f"  功能能力: {capability[i]:.1f}x (相对满分)")
-        print(f"  综合评分: {综合评分[i]:.2f}")
+        print(f"  综合评分: {overall_score[i]:.2f}")
 
 
 def future_trends():
