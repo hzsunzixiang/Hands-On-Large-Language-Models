@@ -32,8 +32,9 @@ print(f"Entailment 样本数: {len(mnli)}")
 
 # Prepare data and add a soft negative (打乱的 hypothesis)
 train_dataset = {"anchor": [], "positive": [], "negative": []}
-soft_negatives = mnli["hypothesis"]
-random.shuffle(soft_negatives)
+# 🔧 修复：先转换为 Python 列表，再打乱
+soft_negatives = list(mnli["hypothesis"])  # 转换为 Python 列表
+random.shuffle(soft_negatives)             # 现在可以安全打乱
 
 for row, soft_negative in tqdm(zip(mnli, soft_negatives)):
     train_dataset["anchor"].append(row["premise"])
