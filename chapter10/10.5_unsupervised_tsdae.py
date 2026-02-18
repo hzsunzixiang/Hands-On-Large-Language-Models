@@ -31,7 +31,8 @@ print("=" * 60)
 
 # Create a flat list of sentences (premise + hypothesis)
 mnli = load_dataset("glue", "mnli", split="train").select(range(25_000))
-flat_sentences = mnli["premise"] + mnli["hypothesis"]
+# 🔧 修复：将 Column 对象转换为列表后合并
+flat_sentences = list(mnli["premise"]) + list(mnli["hypothesis"])
 print(f"原始句子数: {len(flat_sentences)}")
 
 # Add noise to our input data (默认 del_ratio=0.6)
@@ -105,6 +106,8 @@ print(f"Decoder 设备: {device}")
 print("\n" + "=" * 60)
 print("5. 开始 TSDAE 训练 (1 epoch)")
 print("=" * 60)
+
+train_start = time.time()  # 🔧 添加缺失的计时变量
 
 args = SentenceTransformerTrainingArguments(
     output_dir="tsdae_embedding_model",
