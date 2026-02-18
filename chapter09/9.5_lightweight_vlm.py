@@ -46,7 +46,7 @@ def get_device():
 # 示例图片
 IMAGE_URLS = {
     "puppy": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/puppy.png",
-    "beach": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/beach.png",
+    "cat": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/cat.png",
     "car": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/car.png",
 }
 
@@ -277,11 +277,11 @@ def blip_base_demo(device):
             ]
         },
         {
-            "image_key": "beach", 
+            "image_key": "cat", 
             "prefixes": [
-                "a beautiful",
-                "this landscape shows",
-                "the scene depicts"
+                "a cute",
+                "this image shows",
+                "the photo depicts"
             ]
         }
     ]

@@ -24,6 +24,10 @@ from PIL import Image
 from urllib.request import urlopen
 import matplotlib.pyplot as plt
 
+# 配置 matplotlib 中文字体 (macOS)
+plt.rcParams['font.sans-serif'] = ['PingFang SC', 'Heiti TC', 'STHeiti', 'SimHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def get_device():
     """自动检测最佳可用设备"""
@@ -43,7 +47,7 @@ def get_device():
 # 示例数据
 IMAGE_URLS = {
     "puppy": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/puppy.png",
-    "beach": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/beach.png",
+    "cat": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/cat.png",
     "car": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/car.png",
 }
 
@@ -155,7 +159,7 @@ def sbert_clip_basic_demo(device=None):
     # 准备文本
     texts = [
         "a puppy playing in the snow",
-        "a sandy beach with ocean waves", 
+        "a cat sitting comfortably", 
         "a sports car on the road"
     ]
     
@@ -270,8 +274,8 @@ def advanced_similarity_operations(model, device):
     extended_texts = [
         "a dog playing outside",
         "puppy in snow",
-        "ocean waves",
-        "beach vacation",
+        "cute cat",
+        "feline pet",
         "red sports car",
         "fast vehicle",
         "mountain landscape",
@@ -329,8 +333,8 @@ def clustering_and_visualization(model, device):
     texts = [
         "cute puppy playing",
         "dog in winter",
-        "beautiful beach scene",
-        "ocean and sand",
+        "adorable cat resting",
+        "feline on a couch",
         "sports car racing",
         "red vehicle"
     ]
@@ -441,7 +445,7 @@ def practical_applications(model, device):
     # 预定义标签库
     label_categories = {
         "animals": ["dog", "cat", "puppy", "kitten", "pet", "animal"],
-        "nature": ["beach", "ocean", "sea", "sand", "water", "landscape"],
+        "nature": ["cat", "kitten", "feline", "furry", "whiskers", "paws"],
         "vehicles": ["car", "automobile", "vehicle", "transportation", "sports car"],
         "weather": ["snow", "winter", "cold", "sunny", "cloudy"],
         "activities": ["playing", "running", "sleeping", "driving", "swimming"]
@@ -482,7 +486,7 @@ def practical_applications(model, device):
     # 模拟用户偏好
     user_preferences = [
         "I love cute animals",
-        "I enjoy beach vacations",
+        "I enjoy spending time with cats",
         "I'm interested in fast cars"
     ]
     
@@ -541,7 +545,7 @@ def practical_applications(model, device):
     # 添加文本描述
     text_descriptions = [
         "A cute puppy playing in the snow during winter",
-        "Beautiful sandy beach with clear blue ocean waves",
+        "A cute cat sitting comfortably on a soft cushion",
         "Red sports car driving on an empty road"
     ]
     

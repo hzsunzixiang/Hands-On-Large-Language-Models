@@ -23,6 +23,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 
+# 配置 matplotlib 中文字体 (macOS)
+plt.rcParams['font.sans-serif'] = ['PingFang SC', 'Heiti TC', 'STHeiti', 'SimHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False
+
 
 def chapter_overview():
     """第9章概览"""

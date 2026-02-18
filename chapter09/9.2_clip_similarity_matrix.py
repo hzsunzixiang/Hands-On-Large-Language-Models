@@ -20,10 +20,15 @@ warnings.filterwarnings("ignore")
 
 import torch
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 from urllib.request import urlopen
+
+# 配置 matplotlib 中文字体 (macOS)
+plt.rcParams['font.sans-serif'] = ['PingFang SC', 'Heiti TC', 'STHeiti', 'SimHei', 'Arial Unicode MS']
+plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
 
 
 def get_device():
@@ -44,13 +49,13 @@ def get_device():
 # 示例图片和描述
 IMAGE_URLS = {
     "puppy": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/puppy.png",
-    "beach": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/beach.png", 
+    "cat": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/cat.png", 
     "car": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/car.png",
 }
 
 CAPTIONS = [
     "a puppy playing in the snow",
-    "a sandy beach with ocean waves", 
+    "a cat sitting comfortably", 
     "a sports car on the road"
 ]
 
@@ -77,9 +82,9 @@ def similarity_matrix_concept():
 
 示例 (3×3 矩阵):
                 文本1      文本2      文本3
-                puppy     beach      car
+                puppy      cat       car
 图像1 puppy    [0.85]     0.12      0.08
-图像2 beach     0.15     [0.92]     0.11  
+图像2 cat       0.15     [0.92]     0.11  
 图像3 car       0.09      0.13     [0.88]
 
 理想情况: 对角线值最高 (正确匹配)
@@ -409,7 +414,7 @@ def cross_modal_retrieval_demo(device):
     # 查询文本
     query_texts = [
         "cute animal in winter",
-        "ocean and sand",
+        "a fluffy cat",
         "fast vehicle",
         "something blue"
     ]

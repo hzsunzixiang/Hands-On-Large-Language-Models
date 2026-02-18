@@ -46,7 +46,7 @@ def get_device():
 # 示例图片
 IMAGE_URLS = {
     "puppy": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/puppy.png",
-    "beach": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/beach.png",
+    "cat": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/cat.png",
     "car": "https://raw.githubusercontent.com/HandsOnLLM/Hands-On-Large-Language-Models/main/chapter09/images/car.png",
 }
 
@@ -273,10 +273,10 @@ def image_captioning_demo(model, processor, device):
             ]
         },
         {
-            "image_key": "beach", 
+            "image_key": "cat", 
             "prompts": [
-                "Question: What is the setting of this image? Answer:",
-                "Question: Describe the landscape. Answer:"
+                "Question: What animal is in this image? Answer:",
+                "Question: Describe this image in detail. Answer:"
             ]
         },
         {
@@ -361,13 +361,13 @@ def visual_question_answering_demo(model, processor, device):
             ]
         },
         {
-            "image_key": "beach",
+            "image_key": "cat",
             "questions": [
-                "What type of landscape is this?",
-                "Is this a natural or artificial environment?",
-                "What time of day might this be?",
-                "Are there any people visible?",
-                "What's the weather like?"
+                "What kind of animal is this?",
+                "What is the cat doing?",
+                "What color is the cat?",
+                "Is the cat indoors or outdoors?",
+                "Does the cat look happy?"
             ]
         },
         {
