@@ -57,8 +57,9 @@ gold = pd.DataFrame({
 import random
 mnli_entailment = mnli.filter(lambda x: True if x['label'] == 0 else False)
 train_data_a = {"anchor": [], "positive": [], "negative": []}
-soft_negatives = mnli_entailment["hypothesis"]
-random.shuffle(soft_negatives)
+# 🔧 修复：先转换为 Python 列表，再打乱
+soft_negatives = list(mnli_entailment["hypothesis"])  # 转换为 Python 列表
+random.shuffle(soft_negatives)                        # 现在可以安全打乱
 for row, soft_negative in zip(mnli_entailment, soft_negatives):
     train_data_a["anchor"].append(row["premise"])
     train_data_a["positive"].append(row["hypothesis"])
