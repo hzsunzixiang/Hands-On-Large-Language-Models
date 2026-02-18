@@ -3,6 +3,7 @@
 让模型学习从损坏的文本重建原文，从而学到高质量的句子嵌入。
 """
 import gc
+import time
 import torch
 import nltk
 from tqdm import tqdm
@@ -22,6 +23,8 @@ nltk.download('punkt_tab', quiet=True)
 # ============================================================
 # 1. 数据准备 — 构造去噪数据
 # ============================================================
+total_start = time.time()
+
 print("=" * 60)
 print("1. 构造 TSDAE 去噪训练数据")
 print("=" * 60)
@@ -123,6 +126,8 @@ trainer = SentenceTransformerTrainer(
     evaluator=evaluator
 )
 trainer.train()
+train_elapsed = time.time() - train_start
+print(f"\n训练耗时: {train_elapsed:.1f}s ({train_elapsed/60:.1f}min)")
 
 # ============================================================
 # 6. 评估
@@ -141,6 +146,9 @@ print("适用场景: 领域适应 (domain adaptation)、冷启动时预训练")
 # ============================================================
 # 清理显存
 # ============================================================
+total_elapsed = time.time() - total_start
+print(f"\n总运行时间: {total_elapsed:.1f}s ({total_elapsed/60:.1f}min)")
+
 gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()

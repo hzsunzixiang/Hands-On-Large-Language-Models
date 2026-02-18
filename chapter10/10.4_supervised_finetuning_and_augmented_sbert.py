@@ -4,6 +4,7 @@ Part B: Augmented SBERT — 先训练 cross-encoder 标注 silver 数据，
          再用 gold+silver 训练 bi-encoder，对比 gold-only 的效果。
 """
 import gc
+import time
 import numpy as np
 import pandas as pd
 import torch
@@ -21,6 +22,8 @@ from sentence_transformers.training_args import SentenceTransformerTrainingArgum
 # ============================================================
 # 共用评估器 — STS-B
 # ============================================================
+total_start = time.time()
+
 val_sts = load_dataset('glue', 'stsb', split='validation')
 evaluator = EmbeddingSimilarityEvaluator(
     sentences1=val_sts["sentence1"],
@@ -35,6 +38,7 @@ evaluator = EmbeddingSimilarityEvaluator(
 print("=" * 60)
 print("Part A: 微调 all-MiniLM-L6-v2 (MNRL)")
 print("=" * 60)
+part_a_start = time.time()
 
 # --- 数据准备 (与 10.3 相同的三元组格式) ---
 mnli = load_dataset("glue", "mnli", split="train").select(range(50_000))
@@ -111,6 +115,7 @@ elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
 print("\n" + "=" * 60)
 print("Part B: Augmented SBERT")
 print("=" * 60)
+part_b_start = time.time()
 
 # --- Step 1: 训练 Cross-Encoder ---
 print("\nStep 1: 训练 Cross-Encoder (bert-base-uncased, 10k gold)")
@@ -221,10 +226,15 @@ for k, v in results_gold.items():
     print(f"  {k}: {v:.4f}")
 
 print("\n结论: 相比仅用 gold 数据，加入 silver 数据 (Augmented SBERT) 可以提升模型性能!")
+part_b_elapsed = time.time() - part_b_start
+print(f"\nPart B 耗时: {part_b_elapsed:.1f}s ({part_b_elapsed/60:.1f}min)")
 
 # ============================================================
 # 清理显存
 # ============================================================
+total_elapsed = time.time() - total_start
+print(f"\n总运行时间: {total_elapsed:.1f}s ({total_elapsed/60:.1f}min)")
+
 gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()

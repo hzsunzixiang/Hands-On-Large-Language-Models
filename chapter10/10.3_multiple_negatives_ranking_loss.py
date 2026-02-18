@@ -6,6 +6,7 @@ MNRL 是目前最有效的 embedding 训练损失之一。
 """
 import gc
 import random
+import time
 import torch
 from tqdm import tqdm
 from datasets import Dataset, load_dataset
@@ -17,6 +18,8 @@ from sentence_transformers.training_args import SentenceTransformerTrainingArgum
 # ============================================================
 # 1. 数据准备 — 构造 (anchor, positive, negative) 三元组
 # ============================================================
+total_start = time.time()
+
 print("=" * 60)
 print("1. 构造三元组数据 (anchor, positive, soft_negative)")
 print("=" * 60)
@@ -65,6 +68,7 @@ evaluator = EmbeddingSimilarityEvaluator(
 print("\n" + "=" * 60)
 print("3. MultipleNegativesRankingLoss 训练")
 print("=" * 60)
+train_start = time.time()
 
 embedding_model = SentenceTransformer('bert-base-uncased')
 train_loss = losses.MultipleNegativesRankingLoss(model=embedding_model)
@@ -89,6 +93,8 @@ trainer = SentenceTransformerTrainer(
     evaluator=evaluator
 )
 trainer.train()
+train_elapsed = time.time() - train_start
+print(f"\n训练耗时: {train_elapsed:.1f}s ({train_elapsed/60:.1f}min)")
 
 # ============================================================
 # 4. 评估
@@ -104,6 +110,9 @@ for k, v in results.items():
 # ============================================================
 # 清理显存
 # ============================================================
+total_elapsed = time.time() - total_start
+print(f"\n总运行时间: {total_elapsed:.1f}s ({total_elapsed/60:.1f}min)")
+
 gc.collect()
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
