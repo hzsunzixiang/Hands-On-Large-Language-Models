@@ -1,5 +1,9 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["LOKY_MAX_CPU_COUNT"] = "1"
 
 """
 9.3 SBERT-CLIP 简化接口
@@ -55,6 +59,13 @@ IMAGE_URLS = {
 def load_image_from_url(url):
     """从 URL 加载图片"""
     return Image.open(urlopen(url)).convert("RGB")
+
+
+def to_numpy(embeddings):
+    """确保嵌入为 numpy array（兼容 MPS/CUDA tensor）"""
+    if hasattr(embeddings, 'cpu'):
+        return embeddings.cpu().numpy()
+    return np.array(embeddings, dtype=np.float32)
 
 
 def sbert_clip_overview():
@@ -343,15 +354,21 @@ def clustering_and_visualization(model, device):
     # 2. 编码所有数据
     print("\n[步骤 2] 编码混合数据...")
     
-    image_embeddings = model.encode(images)
-    text_embeddings = model.encode(texts)
+    image_embeddings = to_numpy(model.encode(images))
+    text_embeddings = to_numpy(model.encode(texts))
     
-    # 合并嵌入
-    all_embeddings = np.vstack([image_embeddings, text_embeddings])
+    # 合并嵌入，用 .copy() 确保内存连续且与 MPS 完全脱离
+    all_embeddings = np.vstack([image_embeddings, text_embeddings]).copy()
     all_labels = image_labels + text_labels
     
     print(f"✓ 总嵌入数量: {all_embeddings.shape[0]}")
     print(f"✓ 嵌入维度: {all_embeddings.shape[1]}")
+    
+    # 释放 MPS 缓存，避免 sklearn 多线程触发 segfault
+    import gc
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
     
     # 3. 降维可视化
     print("\n[步骤 3] PCA 降维...")
@@ -366,7 +383,7 @@ def clustering_and_visualization(model, device):
     print("\n[步骤 4] K-means 聚类...")
     
     n_clusters = 3
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     cluster_labels = kmeans.fit_predict(all_embeddings)
     
     print(f"✓ 聚类数量: {n_clusters}")
