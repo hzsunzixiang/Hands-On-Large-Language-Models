@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 """
 9.4 BLIP-2 视觉问答系统
 ========================

@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 """
 9.2 CLIP 相似度矩阵分析
 =========================

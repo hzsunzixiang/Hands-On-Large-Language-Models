@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 """
 9.1 CLIP 基础 - 图文嵌入对齐
 =================================

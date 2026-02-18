@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 """
 第9章 - 多模态大语言模型 完整学习流程
 =====================================
