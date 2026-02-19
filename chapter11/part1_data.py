@@ -7,6 +7,9 @@ Part 1: 数据准备
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
+import time
+_start_time = time.perf_counter()
+
 from datasets import load_dataset
 
 print("=" * 60)
@@ -46,6 +49,7 @@ print("-" * 60)
 print(f"  训练集: 正面={train_labels[1]}, 负面={train_labels[0]}")
 print(f"  测试集: 正面={test_labels[1]}, 负面={test_labels[0]}")
 
+_elapsed = time.perf_counter() - _start_time
 print("\n" + "=" * 60)
-print("Part 1 完成!")
+print(f"Part 1 完成! 总耗时: {_elapsed:.2f} 秒 ({_elapsed/60:.1f} 分钟)")
 print("=" * 60)

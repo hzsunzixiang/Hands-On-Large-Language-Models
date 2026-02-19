@@ -15,9 +15,12 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import gc
+import time
 import torch
 import warnings
 warnings.filterwarnings("ignore")
+
+_start_time = time.perf_counter()
 
 from datasets import load_dataset
 from transformers import (
@@ -220,6 +223,7 @@ print("""
 └─────────────────────────────────────────────────────────────┘
 """)
 
+_elapsed = time.perf_counter() - _start_time
 print("=" * 60)
-print("Part 5 完成!")
+print(f"Part 5 完成! 总耗时: {_elapsed:.2f} 秒 ({_elapsed/60:.1f} 分钟)")
 print("=" * 60)
