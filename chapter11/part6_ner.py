@@ -73,19 +73,20 @@ print("-" * 60)
 
 use_wnut = False
 try:
-    # 方案1: 尝试社区维护版本
-    dataset = load_dataset("eriktks/conll2003", trust_remote_code=True)
-    print("使用 eriktks/conll2003 数据集")
+    # datasets >= 4.x 不再支持脚本加载，使用 Parquet 版本
+    dataset = load_dataset("conll2003", revision="refs/convert/parquet")
+    print("使用 conll2003 (Parquet 格式) 数据集")
 except Exception as e1:
+    print(f"  conll2003 Parquet 加载失败: {e1}")
     try:
-        # 方案2: 使用 HuggingFace 镜像
-        os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-        dataset = load_dataset("conll2003", trust_remote_code=True)
-        print("使用 HuggingFace 镜像加载 conll2003")
+        # fallback: 旧版 datasets 直接加载
+        dataset = load_dataset("conll2003")
+        print("使用 conll2003 数据集")
     except Exception as e2:
-        # 方案3: 使用 wnut_17 作为替代
-        print(f"CoNLL-2003 加载失败，使用替代数据集: wnut_17")
-        dataset = load_dataset("wnut_17", trust_remote_code=True)
+        print(f"  conll2003 加载失败: {e2}")
+        # 最终 fallback: wnut_17 Parquet 版本
+        dataset = load_dataset("wnut_17", revision="refs/convert/parquet")
+        print("CoNLL-2003 加载失败，使用替代数据集: wnut_17 (Parquet)")
         use_wnut = True
 
 print(f"训练集: {len(dataset['train'])} 条")
