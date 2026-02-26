@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 
 _start_time = time.perf_counter()
 
-from datasets import load_dataset
+from data_utils import load_rotten_tomatoes
 
 
 def clear_memory():
@@ -48,7 +48,7 @@ print("\n" + "-" * 60)
 print("Step 1: 加载数据并采样 (模拟 few-shot)")
 print("-" * 60)
 
-tomatoes = load_dataset("rotten_tomatoes")
+tomatoes = load_rotten_tomatoes()
 train_data = tomatoes["train"]
 test_data = tomatoes["test"]
 print(f"完整训练集: {len(train_data)} 条")

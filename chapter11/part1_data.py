@@ -10,14 +10,14 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import time
 _start_time = time.perf_counter()
 
-from datasets import load_dataset
+from data_utils import load_rotten_tomatoes
 
 print("=" * 60)
 print("Part 1: 加载 Rotten Tomatoes 数据集")
 print("=" * 60)
 
-# 加载数据
-tomatoes = load_dataset("rotten_tomatoes")
+# 加载数据 (首次下载后自动缓存到 data_cache/)
+tomatoes = load_rotten_tomatoes()
 train_data = tomatoes["train"]
 test_data = tomatoes["test"]
 

@@ -29,7 +29,7 @@ warnings.filterwarnings("ignore")
 
 _start_time = time.perf_counter()
 
-from datasets import load_dataset
+from data_utils import load_conll2003
 from transformers import (
     AutoTokenizer,
     AutoModelForTokenClassification,
@@ -73,21 +73,17 @@ print("-" * 60)
 
 use_wnut = False
 try:
-    # datasets >= 4.x 不再支持脚本加载，使用 Parquet 版本
-    dataset = load_dataset("conll2003", revision="refs/convert/parquet")
-    print("使用 conll2003 (Parquet 格式) 数据集")
-except Exception as e1:
-    print(f"  conll2003 Parquet 加载失败: {e1}")
-    try:
-        # fallback: 旧版 datasets 直接加载
-        dataset = load_dataset("conll2003")
-        print("使用 conll2003 数据集")
-    except Exception as e2:
-        print(f"  conll2003 加载失败: {e2}")
-        # 最终 fallback: wnut_17 Parquet 版本
-        dataset = load_dataset("wnut_17", revision="refs/convert/parquet")
-        print("CoNLL-2003 加载失败，使用替代数据集: wnut_17 (Parquet)")
+    dataset = load_conll2003()
+    # 检查是否为 wnut_17 (通过标签判断)
+    ner_names = dataset["train"].features["ner_tags"].feature.names
+    if "B-PER" not in ner_names:
         use_wnut = True
+        print("  (使用 wnut_17 替代数据集)")
+    else:
+        print("使用 conll2003 数据集")
+except Exception as e:
+    print(f"  数据集加载失败: {e}")
+    raise
 
 print(f"训练集: {len(dataset['train'])} 条")
 print(f"测试集: {len(dataset['test'])} 条")

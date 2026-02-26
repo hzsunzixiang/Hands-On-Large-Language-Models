@@ -25,7 +25,7 @@ warnings.filterwarnings("ignore")
 
 _start_time = time.perf_counter()
 
-from datasets import load_dataset
+from data_utils import load_rotten_tomatoes
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
@@ -67,7 +67,7 @@ print("准备数据")
 print("-" * 60)
 
 model_id = "bert-base-cased"
-tomatoes = load_dataset("rotten_tomatoes")
+tomatoes = load_rotten_tomatoes()
 train_data = tomatoes["train"]
 test_data = tomatoes["test"]
 
