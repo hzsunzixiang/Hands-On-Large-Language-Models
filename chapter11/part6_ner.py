@@ -38,7 +38,6 @@ from transformers import (
     Trainer,
     pipeline
 )
-import evaluate
 
 
 def clear_memory():
@@ -221,8 +220,8 @@ print("\n" + "-" * 60)
 print("Step 5: 训练 NER 模型")
 print("-" * 60)
 
-# 评估指标: seqeval (NER 专用)
-seqeval = evaluate.load("seqeval")
+# 评估指标: seqeval (NER 专用) — 直接使用 seqeval 包
+from seqeval.metrics import f1_score as seqeval_f1_score
 
 
 def compute_metrics(eval_pred):
@@ -233,14 +232,19 @@ def compute_metrics(eval_pred):
     true_labels = []
 
     for prediction, label in zip(predictions, labels):
+        pred_seq = []
+        label_seq = []
         for token_pred, token_label in zip(prediction, label):
             # 忽略特殊 token
             if token_label != -100:
-                true_predictions.append([id2label[token_pred]])
-                true_labels.append([id2label[token_label]])
+                pred_seq.append(id2label[token_pred])
+                label_seq.append(id2label[token_label])
+        if label_seq:
+            true_predictions.append(pred_seq)
+            true_labels.append(label_seq)
 
-    results = seqeval.compute(predictions=true_predictions, references=true_labels)
-    return {"f1": results["overall_f1"]}
+    f1 = seqeval_f1_score(true_labels, true_predictions)
+    return {"f1": f1}
 
 
 data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
