@@ -77,7 +77,19 @@ print("-" * 60)
 
 from setfit import SetFitModel
 
-model = SetFitModel.from_pretrained("sentence-transformers/all-mpnet-base-v2")
+# 检测设备
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = "mps"
+else:
+    device = "cpu"
+print(f"使用设备: {device}")
+
+model = SetFitModel.from_pretrained(
+    "sentence-transformers/all-mpnet-base-v2",
+    device=device
+)
 print("模型: sentence-transformers/all-mpnet-base-v2")
 print(f"分类头类型: {type(model.model_head).__name__}")
 
