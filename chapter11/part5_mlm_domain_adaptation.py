@@ -41,9 +41,20 @@ def clear_memory():
         torch.mps.empty_cache()
 
 
+def get_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 print("=" * 60)
 print("Part 5: 掩码语言模型 (MLM) 领域适应")
 print("=" * 60)
+
+device = get_device()
+print(f"\n使用设备: {device}")
 
 # ============================================================
 # Step 1: 加载数据
@@ -67,10 +78,11 @@ print("-" * 60)
 model_id = "bert-base-cased"
 print(f"模型: {model_id}")
 
-model = AutoModelForMaskedLM.from_pretrained(model_id)
+model = AutoModelForMaskedLM.from_pretrained(model_id).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 print(f"模型类型: {type(model).__name__}")
+print(f"模型设备: {next(model.parameters()).device}")
 print("注意: AutoModelForMaskedLM (不是 ForSequenceClassification)")
 
 # ============================================================
@@ -141,6 +153,7 @@ training_args = TrainingArguments(
     save_strategy="epoch",
     report_to="none",
     fp16=False,
+    use_mps_device=(device == "mps"),
 )
 
 trainer = Trainer(
@@ -179,14 +192,14 @@ print(f"\n输入: '{test_sentence}'\n")
 
 # 原始 BERT
 print("【原始 BERT (通用预训练)】:")
-mask_filler_original = pipeline("fill-mask", model="bert-base-cased")
+mask_filler_original = pipeline("fill-mask", model="bert-base-cased", device=device)
 preds_original = mask_filler_original(test_sentence)
 for pred in preds_original:
     print(f"  >>> {pred['sequence']:40s}  (score: {pred['score']:.4f})")
 
 # 领域适应后的 BERT
 print("\n【领域适应后 (电影评论 MLM)】:")
-mask_filler_domain = pipeline("fill-mask", model="mlm_movie")
+mask_filler_domain = pipeline("fill-mask", model="mlm_movie", device=device)
 preds_domain = mask_filler_domain(test_sentence)
 for pred in preds_domain:
     print(f"  >>> {pred['sequence']:40s}  (score: {pred['score']:.4f})")

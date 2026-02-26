@@ -49,9 +49,20 @@ def clear_memory():
         torch.mps.empty_cache()
 
 
+def get_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 print("=" * 60)
 print("Part 6: 命名实体识别 (NER)")
 print("=" * 60)
+
+device = get_device()
+print(f"\n使用设备: {device}")
 
 # ============================================================
 # Step 1: 加载 CoNLL-2003 数据集
@@ -126,10 +137,11 @@ model = AutoModelForTokenClassification.from_pretrained(
     num_labels=len(id2label),
     id2label=id2label,
     label2id=label2id
-)
+).to(device)
 print(f"模型: {model_id}")
 print(f"分类标签数: {len(id2label)}")
 print(f"模型类型: AutoModelForTokenClassification")
+print(f"模型设备: {next(model.parameters()).device}")
 
 # ============================================================
 # Step 4: 子词标签对齐 (核心难点)
@@ -246,6 +258,7 @@ training_args = TrainingArguments(
     save_strategy="epoch",
     report_to="none",
     fp16=False,
+    use_mps_device=(device == "mps"),
 )
 
 trainer = Trainer(
@@ -282,6 +295,7 @@ trainer.save_model("ner_model_final")
 token_classifier = pipeline(
     "token-classification",
     model="ner_model_final",
+    device=device,
 )
 
 test_sentences = [

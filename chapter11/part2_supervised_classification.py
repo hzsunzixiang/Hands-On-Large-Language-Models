@@ -76,7 +76,7 @@ print("-" * 60)
 model_id = "bert-base-cased"
 print(f"模型: {model_id}")
 
-model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2)
+model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 
 # 打印模型结构概览
@@ -147,6 +147,7 @@ training_args = TrainingArguments(
     save_strategy="epoch",
     report_to="none",
     fp16=False,  # MPS 不支持 fp16
+    use_mps_device=(device == "mps"),
 )
 
 trainer = Trainer(

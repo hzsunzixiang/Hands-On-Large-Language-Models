@@ -102,6 +102,7 @@ training_args = TrainingArguments(
     save_strategy="epoch",
     report_to="none",
     fp16=False,
+    use_mps_device=(device == "mps"),
 )
 
 # ============================================================
@@ -111,7 +112,7 @@ print("\n" + "-" * 60)
 print("实验1: 只训练分类头 (冻结所有 BERT 层)")
 print("-" * 60)
 
-model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2)
+model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
 
 # 冻结除 classifier 外的所有参数
 for name, param in model.named_parameters():
@@ -158,7 +159,7 @@ print("\n" + "-" * 60)
 print("实验2: 冻结 layer 0-9，训练 layer 10-11 + 分类头")
 print("-" * 60)
 
-model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2)
+model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
 
 # 打印参数索引，找到 layer 10 的起始位置
 print("\n参数索引映射 (layer 10 附近):")
@@ -204,7 +205,7 @@ RUN_BONUS = False  # 设为 True 运行完整实验（耗时较长）
 if RUN_BONUS:
     scores = []
     for freeze_up_to in range(12):
-        model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2)
+        model = AutoModelForSequenceClassification.from_pretrained(model_id, num_labels=2).to(device)
         tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         # 冻结 encoder blocks 0 ~ freeze_up_to
