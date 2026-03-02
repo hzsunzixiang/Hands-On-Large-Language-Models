@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FP4 vs FP8 量化深度分析：QLoRA 分块量化的工程价值</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #232740;
+    --border: #2e3350;
+    --text: #e0e0e8;
+    --text-muted: #8888a0;
+    --accent: #6c8cff;
+    --accent2: #a78bfa;
+    --green: #4ade80;
+    --red: #f87171;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+    padding: 0;
+  }
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 48px 0 20px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+  }
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--accent2);
+    margin: 32px 0 12px;
+  }
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 24px 0 10px;
+  }
+  p { margin: 10px 0; }
+  strong { color: #fff; }
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--cyan);
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--green);
+  }
+  pre .comment { color: var(--text-muted); }
+  pre .highlight { color: var(--orange); font-weight: 600; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.92rem;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--accent);
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:hover td {
+    background: rgba(108, 140, 255, 0.05);
+  }
+  ul, ol {
+    margin: 10px 0 10px 24px;
+  }
+  li {
+    margin: 6px 0;
+  }
+  blockquote {
+    border-left: 4px solid var(--accent2);
+    background: rgba(167, 139, 250, 0.08);
+    padding: 16px 20px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95rem;
+  }
+  blockquote strong { color: var(--accent2); }
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .callout-title {
+    font-weight: 700;
+    color: var(--yellow);
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+  }
+  .callout-warn {
+    background: rgba(251,146,60,0.06);
+    border-color: var(--orange);
+  }
+  .callout-warn .callout-title {
+    color: var(--orange);
+  }
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .comparison-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .comparison-box h5 {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+  }
+  .comparison-box.bad { border-color: var(--red); }
+  .comparison-box.bad h5 { color: var(--red); }
+  .comparison-box.good { border-color: var(--green); }
+  .comparison-box.good h5 { color: var(--green); }
+  .formula {
+    text-align: center;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 1rem;
+    color: var(--yellow);
+    padding: 16px;
+    margin: 12px 0;
+    background: var(--surface);
+    border-radius: 8px;
+  }
+  .iron-rule {
+    background: var(--surface);
+    border: 1px solid var(--orange);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .iron-rule h4 {
+    color: var(--orange);
+    margin: 0 0 10px;
+  }
+  .iron-rule .formula {
+    margin: 8px 0;
+    padding: 10px;
+    font-size: 0.92rem;
+  }
+  .grid-demo {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 3px;
+    margin: 12px 0;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-height: 28px;
+  }
+  .grid-cell.int { background: var(--red); color: #fff; }
+  .grid-cell.dec { background: var(--green); color: #000; }
+  .grid-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 4px 0;
+  }
+  .key-table td:first-child {
+    font-weight: 700;
+    color: var(--accent);
+    width: 40px;
+    text-align: center;
+  }
+  @media (max-width: 640px) {
+    .container { padding: 20px 16px 60px; }
+    h1 { font-size: 1.5rem; }
+    .comparison { grid-template-columns: 1fr; }
+    table { font-size: 0.82rem; }
+    th, td { padding: 8px 10px; }
+    .grid-demo { grid-template-columns: repeat(8, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>FP4 vs FP8 量化深度分析</h1>
+<div class="subtitle">QLoRA 分块量化的工程价值 — 从浮点格式到硬件落地的完整解析</div>
+
+<!-- ========== Section 0: 铁律 ========== -->
+<h2>零、前置知识：3 条铁律</h2>
+<p>先记死这 3 条，后面全靠它们。</p>
+
+<div class="iron-rule">
+  <h4>铁律 1：FP4 的格子数固定为 16</h4>
+  <p>FP4（NVFP4）是 4-bit 存储，最多只能表示 2<sup>4</sup> = <strong>16 个离散值（量化等级）</strong>——永远只有 16 个"格子"，多一个都没有，硬件级硬限制。</p>
+</div>
+
+<div class="iron-rule">
+  <h4>铁律 2：步长、格子数、覆盖范围此消彼长</h4>
+  <div class="formula">覆盖范围 = 步长 &times;（格子数 - 1）= 步长 &times; 15</div>
+  <ul>
+    <li>步长越细 &rarr; 覆盖范围越小</li>
+    <li>步长越粗 &rarr; 覆盖范围越大</li>
+    <li>格子数固定为 16 &rarr; <strong>精细度和覆盖范围无法兼得</strong></li>
+  </ul>
+</div>
+
+<div class="iron-rule">
+  <h4>铁律 3：16 个格子由整数部分和小数部分共享</h4>
+  <p>FP4 的 16 个格子是<strong>全局统一分配</strong>的，要同时覆盖「整数部分」和「小数部分」：</p>
+  <ul>
+    <li>整数部分量级越大 &rarr; 占用格子越多 &rarr; 小数部分分到的格子越少 &rarr; <strong>小数精度越差</strong></li>
+    <li>整数部分量级越小 &rarr; 占用格子越少 &rarr; 小数部分分到的格子越多 &rarr; <strong>小数精度越好</strong></li>
+  </ul>
+</div>
+
+<blockquote>
+  <strong>钱包比喻</strong>：把 16 个格子看作"16 个硬币"，要同时买"整数面包"和"小数咸菜"：<br>
+  - 买 1 元的面包 &rarr; 花 1 个硬币 &rarr; 剩 15 个硬币挑咸菜 &rarr; 精细到 0.11<br>
+  - 买 10000 元的面包 &rarr; 花 15 个硬币 &rarr; 只剩 1 个硬币 &rarr; 只能选 0.10 或 0.12，买不到 0.11
+</blockquote>
+
+<hr>
+
+<!-- ========== Section 1: 格式概述 ========== -->
+<h2>一、FP4 与 FP8 浮点格式概述</h2>
+
+<h3>1.1 格式定义</h3>
+<table>
+  <thead>
+    <tr><th>格式</th><th>位宽</th><th>结构</th><th>精度特征</th><th>硬件支持</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>FP8 E4M3</strong></td><td>8-bit</td>
+      <td>1 符号 + 4 指数 + 3 尾数</td>
+      <td>精度 &asymp; 0.0625，能区分 1.10/1.12/1.15 等精细值</td>
+      <td>Hopper (H100), Blackwell (B200)</td>
+    </tr>
+    <tr>
+      <td><strong>FP8 E5M2</strong></td><td>8-bit</td>
+      <td>1 符号 + 5 指数 + 2 尾数</td>
+      <td>更大动态范围，精度略低</td>
+      <td>Hopper, Blackwell</td>
+    </tr>
+    <tr>
+      <td><strong>FP4 (NVFP4)</strong></td><td>4-bit</td>
+      <td>1 符号 + 2 指数 + 1 尾数</td>
+      <td>仅 16 个离散等级，最小可区分间隔 &ge; 0.5</td>
+      <td>Blackwell (B200, B100)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>1.2 性能对比</h3>
+<table>
+  <thead>
+    <tr><th>指标</th><th>FP4 (NVFP4)</th><th>FP8</th><th>FP16 (基线)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>相对吞吐量 (vs H100 FP16)</td><td><strong>3.17&times;</strong></td><td>2.80&times;</td><td>1.0&times;</td></tr>
+    <tr><td>模型体积 (相对 FP16)</td><td><strong>3.5&times; 压缩</strong></td><td>2&times; 压缩</td><td>1.0&times;</td></tr>
+    <tr><td>FP4 vs FP8 体积比</td><td><strong>1.8&times; 更小</strong></td><td>基线</td><td>&mdash;</td></tr>
+    <tr><td>典型精度损失</td><td>&lt; 1% (配合 two-level scaling)</td><td>极小</td><td>&mdash;</td></tr>
+    <tr><td>主要用途</td><td><strong>推理</strong></td><td>训练 + 推理</td><td>通用</td></tr>
+  </tbody>
+</table>
+
+<h3>1.3 NVFP4 的存储结构</h3>
+<pre>
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;  16 个 FP4 权重值 (每个 4-bit)                    &#9474;  &larr; 一个 block
+&#9474;  + 1 个 FP8 E4M3 scale factor (block 级)         &#9474;
+&#9474;  + 1 个 FP32 scale factor (tensor 级，防溢出)     &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+</pre>
+
+<hr>
+
+<!-- ========== Section 2: 16 个格子的直觉 ========== -->
+<h2>二、"16 个格子"的直觉：为什么相同区间长度，精度天差地别？</h2>
+<p>这是 FP4 量化最关键、也最容易被忽略的点。用两个极端例子一看就懂。</p>
+
+<h3>2.1 场景对比：<code>1.10~1.12</code> vs <code>10000.10~10000.12</code></h3>
+<p>两个区间的共同点：</p>
+<ul>
+  <li>区间长度<strong>完全相同</strong>：都是 0.02</li>
+  <li>FP4 格子总数<strong>完全相同</strong>：都是 16</li>
+</ul>
+<p>唯一区别：<strong>整数部分的量级</strong>（1 vs 10000）</p>
+
+<h3>2.2 场景 A：量化 <code>1.10 ~ 1.12</code>（小整数，格子几乎全给小数）</h3>
+<div class="formula">步长 = 0.02 / 15 &asymp; 0.001333</div>
+<p><strong>格子分配</strong>：整数部分"1"只占 <strong>1 个格子</strong>，小数部分 0.10~0.12 分到 <strong>15 个格子</strong></p>
+<p class="grid-label">格子分配可视化（<span style="color:var(--red);">&#9632; 整数</span> <span style="color:var(--green);">&#9632; 小数</span>）：</p>
+<div class="grid-demo">
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+  <div class="grid-cell dec">小</div>
+</div>
+<pre>
+量化 1.11：
+  落在 1.10 + 8&times;0.001333 &asymp; 1.1107 这个格子
+  &rarr; 舍入误差仅 <span class="highlight">0.0007</span>
+  &#10003; 小数精度极高
+</pre>
+
+<h3>2.3 场景 B：量化 <code>10000.10 ~ 10000.12</code>（巨大整数，格子几乎全被整数吃掉）</h3>
+<p>16 个格子要先"够到"10000 这个整数：</p>
+<ul>
+  <li>整数部分"10000"：需要占用 <strong>15 个格子</strong></li>
+  <li>小数部分 0.10~0.12：只剩 <strong>1 个格子</strong></li>
+  <li>小数格子宽度 = 0.02 / 1 = <strong>0.02</strong></li>
+</ul>
+<p class="grid-label">格子分配可视化（<span style="color:var(--red);">&#9632; 整数</span> <span style="color:var(--green);">&#9632; 小数</span>）：</p>
+<div class="grid-demo">
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell int">整</div>
+  <div class="grid-cell dec">小</div>
+</div>
+<pre>
+量化 10000.11：
+  只有「10000.10」和「10000.12」两个刻度
+  10000.11 被舍入到 10000.10 或 10000.12
+  &rarr; 误差 <span class="highlight">0.01</span>，是场景 A 的 14 倍
+  &#10007; 小数精度极差
+</pre>
+
+<h3>2.4 格子分配对比（核心！）</h3>
+<table>
+  <thead>
+    <tr><th>区间</th><th>总格子</th><th>整数占用</th><th>小数占用</th><th>小数步长</th><th>量化误差</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>1.10~1.12</code></td><td>16</td>
+      <td><strong>1</strong></td><td><strong>15</strong></td>
+      <td>&asymp;0.001333</td><td>&asymp;0.0007</td>
+    </tr>
+    <tr>
+      <td><code>10000.10~10000.12</code></td><td>16</td>
+      <td><strong>15</strong></td><td><strong>1</strong></td>
+      <td>0.02</td><td>0.01</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <strong>结论</strong>：两个区间长度完全相同（0.02），但因为整数部分量级不同，16 个格子在「整数/小数」间的分配比例<strong>完全颠倒</strong>，小数精度差 14 倍。
+</blockquote>
+
+<h3>2.5 反证：强行用细步长量化大整数会怎样？</h3>
+<p>假设不管整数量级，硬要用场景 A 的细步长（0.001333）去覆盖 <code>10000.10~10000.12</code>：</p>
+<pre>
+覆盖 10000 需要的格子 = 10000 / 0.001333 &asymp; <span class="highlight">750 万个</span>
+FP4 只有 16 个格子 &rarr; 完全不够
+
+结果：10000.11 直接溢出，被截断成 FP4 能表示的最大值
+     &rarr; 整数部分错得离谱，小数精度完全丢失
+</pre>
+<div class="callout callout-warn">
+  <div class="callout-title">&#9888; 关键教训</div>
+  <p>不能无脑追求细步长——<strong>格子不够连整数都放不下</strong>，直接溢出。这就是为什么必须根据值域调整步长。</p>
+</div>
+
+<hr>
+
+<!-- ========== Section 3: 量化实验 ========== -->
+<h2>三、量化实验：FP8 &rarr; FP4 的真实误差分析</h2>
+
+<h3>3.1 场景设定</h3>
+<p>模型某层权重（FP8 E4M3 可精确表示的 7 个值）：</p>
+<pre>[1.10, 1.12, 1.15, 1.20,  9.10, 9.15, 9.20]</pre>
+<p>核心矛盾：</p>
+<ul>
+  <li>FP8 E4M3 有 3-bit 尾数，<strong>能精确表示 1.12</strong></li>
+  <li>FP4 NVFP4 仅 1-bit 尾数，<strong>天然无法表示 1.12</strong></li>
+</ul>
+
+<h3>3.2 全局量化：灾难性信息丢失 <span class="badge badge-red">&times; 不推荐</span></h3>
+<p>全局范围 <code>[1.10, 9.20]</code>，跨度 = 8.1</p>
+<p>FP4 仅 16 个格子，步长 = 8.1 / 15 &asymp; <strong>0.54</strong></p>
+<p>用第二章的"格子分配"视角理解：16 个格子要同时覆盖从 1 到 9 的整数跨度，小数部分几乎分不到格子。</p>
+<pre>
+原始值    &rarr;  量化值    误差
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+1.10     &rarr;  1.0      0.10
+1.12     &rarr;  1.0      <span class="highlight">0.12   &larr; 误差显著</span>
+1.15     &rarr;  1.0      0.15
+1.20     &rarr;  1.0      0.20
+9.10     &rarr;  9.0      0.10
+9.15     &rarr;  9.0      0.15
+9.20     &rarr;  9.0      0.20
+</pre>
+<p><strong>结果：7 个不同的 FP8 值 &rarr; 只剩 2 个 FP4 值，信息损失 &gt; 90%</strong></p>
+
+<h3>3.3 QLoRA 分块量化：误差压缩到可容忍范围 <span class="badge badge-green">&#10003; 推荐</span></h3>
+<p>将权重按局部性切成两块，<strong>每块独立计算 scale factor</strong>——本质是<strong>让每个块的 16 个格子只服务于极小的局部范围</strong>：</p>
+
+<h4>块 1：<code>[1.10, 1.12, 1.15, 1.20]</code></h4>
+<ul>
+  <li>局部范围：<code>[1.10, 1.20]</code>，跨度仅 0.1</li>
+  <li>整数部分只有"1"，占 1 个格子，剩下 15 个格子全给小数</li>
+  <li>块内步长 = 0.1 / 15 &asymp; <strong>0.0067</strong>（比全局精度提升 80 倍）</li>
+</ul>
+<pre>
+1.10  &rarr;  1.10   <span class="comment">(正好落在刻度上)</span>
+1.12  &rarr;  1.10   <span class="highlight">(FP4 无 1.12，舍入到最近可表示值，误差 0.02)</span>
+1.15  &rarr;  1.15   <span class="comment">(正好落在刻度上)</span>
+1.20  &rarr;  1.20   <span class="comment">(正好落在刻度上)</span>
+</pre>
+
+<blockquote>
+  <strong>关键观察</strong>：1.12 &rarr; 1.10，这是"FP8 能精确表示，但 FP4 无论如何表示不了"的<strong>真实、不可消除的量化误差</strong>。QLoRA 没有凭空创造 FP4 不存在的表达能力，只是把误差从 0.12 压缩到了 0.02。
+</blockquote>
+
+<h4>块 2：<code>[9.10, 9.15, 9.20]</code></h4>
+<ul>
+  <li>局部范围：<code>[9.10, 9.20]</code>，跨度仅 0.1</li>
+  <li>同理，16 个格子聚焦在极小区间，精度极高</li>
+</ul>
+<pre>
+9.10  &rarr;  9.10
+9.15  &rarr;  9.15
+9.20  &rarr;  9.20
+</pre>
+
+<h3>3.4 核心对比</h3>
+<table>
+  <thead>
+    <tr><th>量化方式</th><th>结果</th><th>与 FP8 对比</th><th>精度损失</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>全局 FP4</strong></td>
+      <td><code>[1.0, 1.0, 1.0, 1.0, 9.0, 9.0, 9.0]</code></td>
+      <td>7 值 &rarr; 2 值</td>
+      <td><span class="badge badge-red">&gt; 90%</span></td>
+    </tr>
+    <tr>
+      <td><strong>QLoRA 分块 FP4</strong></td>
+      <td><code>[1.10, 1.10, 1.15, 1.20, 9.10, 9.15, 9.20]</code></td>
+      <td>仅 1.12 舍入为 1.10</td>
+      <td><span class="badge badge-green">&lt; 5%</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ========== Section 4: QLoRA 本质 ========== -->
+<h2>四、QLoRA 分块量化的本质</h2>
+
+<h3>4.1 它做了什么</h3>
+<div class="comparison">
+  <div class="comparison-box bad">
+    <h5>全局量化</h5>
+    <pre style="border:none;margin:0;padding:10px 0;">
+16 个刻度覆盖
+1.0 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; 9.2
+步长 &asymp; 0.54
+整数吃掉大量格子
+    </pre>
+    <p style="color:var(--red);font-weight:600;">粗糙 &rarr; 大量碰撞</p>
+  </div>
+  <div class="comparison-box good">
+    <h5>分块量化</h5>
+    <pre style="border:none;margin:0;padding:10px 0;">
+块1: 16刻度 &rarr; 1.10&ndash;1.20
+块2: 16刻度 &rarr; 9.10&ndash;9.20
+步长 &asymp; 0.007
+整数仅占 1 格
+    </pre>
+    <p style="color:var(--green);font-weight:600;">精细 &rarr; 误差极小</p>
+  </div>
+</div>
+<p><strong>核心动作</strong>：将 FP4 有限的 16 个格子，从"覆盖巨大全局范围（整数吃掉大量格子）"<strong>聚焦到极小的局部块内（整数只占极少格子，小数精度最大化）</strong>。</p>
+<p>用"钱包分币"的话说：QLoRA 把"买 1 万元面包的账单"和"买 1 元面包的账单"<strong>分开结算</strong>，每张账单各分 16 个硬币，这样买 1 元面包时，15 个硬币都能花在咸菜（小数精度）上。</p>
+
+<h3>4.2 它没做什么</h3>
+<ul>
+  <li><strong>没有</strong>让 FP4 凭空表示出 1.12</li>
+  <li><strong>没有</strong>创造 FP4 原本不存在的表达能力</li>
+  <li><strong>没有</strong>改变"16 个格子"的硬件限制</li>
+  <li>量化误差<strong>依然存在</strong>，只是从"不可接受"变成了"模型可容忍"</li>
+</ul>
+
+<h3>4.3 数学本质</h3>
+<div class="formula">
+  全局误差 &prop; (global_max &minus; global_min) / 2<sup>bits</sup> = 8.1 / 16 &asymp; 0.54<br>
+  分块误差 &prop; (block_max &minus; block_min) / 2<sup>bits</sup> = 0.1 / 16 &asymp; 0.007
+</div>
+<p style="text-align:center;font-size:1.1rem;">误差压缩比 = 0.54 / 0.007 &asymp; <strong style="color:var(--green);font-size:1.3rem;">80&times;</strong></p>
+<p>本质上，分块量化通过<strong>按整数量级分块</strong>，优化了 16 个格子在"整数/小数"间的分配效率：</p>
+<ul>
+  <li>全局量化：格子要跨越 1~9 的整数，小数精度被牺牲</li>
+  <li>分块量化：每个块的整数范围极小，格子几乎全部留给小数</li>
+</ul>
+
+<hr>
+
+<!-- ========== Section 5: 硬件落地 ========== -->
+<h2>五、硬件落地意义</h2>
+<p>在 NVIDIA Blackwell GPU (B200/B100) 上，QLoRA + NVFP4 实现：</p>
+<table>
+  <thead>
+    <tr><th>收益</th><th>数值</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>模型体积缩小</td><td><strong>1.8&times;</strong>（vs FP8），<strong>3.5&times;</strong>（vs FP16）</td></tr>
+    <tr><td>推理吞吐量提升</td><td><strong>3.17&times;</strong>（vs H100 FP16）</td></tr>
+    <tr><td>整体精度损失</td><td><strong>&lt; 1%</strong></td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <div class="callout-title">&#9889; 核心结论</div>
+  <p>低比特量化落地的本质：<strong>不是消除误差，而是把误差控制在模型鲁棒性的容忍范围内，同时换取数倍的效率提升。</strong></p>
+</div>
+
+<hr>
+
+<!-- ========== Section 6: 个人理解 ========== -->
+<h2>六、个人理解与补充</h2>
+
+<h3>6.1 为什么 QLoRA 用分块而不是更复杂的方法？</h3>
+<p>分块量化的精妙在于其<strong>工程简洁性</strong>：</p>
+<ul>
+  <li>不需要重新训练模型（Post-Training Quantization）</li>
+  <li>不需要复杂的校准数据集</li>
+  <li>只需要一个简单的设计决策：<strong>block size 选多大？</strong>（通常 64 或 128 个权重为一块）</li>
+  <li>额外存储开销极小：每块只多存一个 FP8 scale factor</li>
+</ul>
+<p>这符合工程中的帕累托法则——用 20% 的复杂度解决 80% 的精度问题。</p>
+
+<h3>6.2 分块量化的局限性</h3>
+<ol>
+  <li>
+    <strong>块内异常值（outlier）问题</strong>：如果一个块内出现一个极端值（如 <code>[1.10, 1.12, 1.15, 100.0]</code>），该块的 scale factor 会被拉大——用"格子分配"视角看，就是整数部分"100"突然吃掉大量格子，小数精度急剧退化。这也是为什么 LLM.int8() 等方法会对 outlier 做特殊处理（mixed-precision decomposition）。
+  </li>
+  <li>
+    <strong>block size 的权衡</strong>：
+    <ul>
+      <li>块越小 &rarr; 精度越高（每个块的整数范围越小，格子分配越合理），但 scale factor 的存储开销越大</li>
+      <li>块越大 &rarr; 存储效率越高，但越可能包含跨量级的值（大整数和小整数混在一块），退化为"全局量化"</li>
+      <li>NVFP4 选择 16 元素为一块，是 NVIDIA 在硬件 Tensor Core 对齐、存储开销、精度之间的平衡点</li>
+    </ul>
+  </li>
+  <li>
+    <strong>FP4 的 1-bit 尾数是物理极限</strong>：无论怎么分块，FP4 在每个块内也只有 16 个可表示值。当块内权重分布高度非均匀时（如集中在某个小区间），有些值必然会发生碰撞（多个不同原始值映射到同一个 FP4 值）。
+  </li>
+</ol>
+
+<h3>6.3 从信息论角度看</h3>
+<p>FP8 &rarr; FP4 本质是将每个权重的信息量从 8 bit 压缩到 4 bit，<strong>信息熵减半</strong>。分块量化的 scale factor 相当于额外编码了"这个块的值域在哪里"的<strong>元信息</strong>（即"这个块的整数量级是多少"），用少量额外 bit 换回了大量精度，是一种高效的信息编码策略。</p>
+
+<h3>6.4 与 GGUF 量化的关联</h3>
+<p>本文档讨论的 NVFP4 是 NVIDIA GPU 上的硬件原生格式。而在 CPU/Apple Silicon 上广泛使用的 GGUF 格式（如 <code>Qwen3.5-27B-Q4_K_M.gguf</code>）采用的是类似思想但不同实现的 <strong>K-Quant 分块量化</strong>：</p>
+<ul>
+  <li>Q4_K_M 中的 "K" = K-Quant（分块量化）</li>
+  <li>"M" = Medium（精度和体积的中等平衡）</li>
+  <li>同样采用 block-wise scaling，每 32 或 256 个权重为一个 super-block</li>
+  <li>区别在于 K-Quant 使用整数量化而非浮点量化，且 block 结构更复杂（有 sub-block 嵌套）</li>
+</ul>
+<div class="callout">
+  <div class="callout-title">&#128279; 本质相同</div>
+  <p>无论是 NVIDIA NVFP4 还是 llama.cpp K-Quant，都是通过<strong>缩小量化范围来提升低比特格式的有效精度</strong>——让 16 个格子不用浪费在跨越巨大整数量级上，而是专注服务于局部小范围内的精细区分。硬件不同，思想一致。</p>
+</div>
+
+<hr>
+
+<!-- ========== Section 7: 速查表 ========== -->
+<h2>关键点速查</h2>
+<table class="key-table">
+  <thead>
+    <tr><th>#</th><th>要点</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>FP4 固定只有 <strong>16 个格子</strong>，硬件级限制不可突破</td></tr>
+    <tr><td>2</td><td>16 个格子由<strong>整数和小数共享</strong>，整数量级决定分配比例</td></tr>
+    <tr><td>3</td><td>相同区间长度下，<strong>大整数区间的小数精度远低于小整数区间</strong>（14 倍差距）</td></tr>
+    <tr><td>4</td><td>强行用细步长覆盖大整数 &rarr; 格子不够 &rarr; <strong>直接溢出</strong></td></tr>
+    <tr><td>5</td><td>全局量化让 16 个格子跨越巨大范围 &rarr; 信息损失 &gt; 90%</td></tr>
+    <tr><td>6</td><td>QLoRA 分块量化通过<strong>按量级分块</strong>，优化格子分配，误差压缩 80&times;</td></tr>
+    <tr><td>7</td><td>分块量化<strong>没有创造新的表达能力</strong>，只是让有限格子的分配效率最大化</td></tr>
+    <tr><td>8</td><td>硬件落地：体积缩小 3.5&times;，吞吐量提升 3.17&times;，精度损失 &lt; 1%</td></tr>
+  </tbody>
+</table>
+
+</div>
+</body>
+</html>
