@@ -54,7 +54,7 @@ dataset = (
     .shuffle(seed=42)
     .select(range(3_000))
 )
-dataset = dataset.map(format_prompt)
+dataset = dataset.map(format_prompt, remove_columns=dataset.column_names)  # 只保留 "text" 字段
 
 # ============================================================
 # 2. 模型加载（CUDA: 4-bit 量化 / MPS: float16 / CPU: float32）
@@ -124,6 +124,7 @@ if USE_CUDA:
         gradient_checkpointing=True,
         dataset_text_field="text",
         max_length=512,
+        report_to="none",
     )
 elif USE_MPS:
     training_arguments = SFTConfig(
@@ -140,6 +141,7 @@ elif USE_MPS:
         dataloader_pin_memory=False,
         dataset_text_field="text",
         max_length=512,
+        report_to="none",
     )
 else:
     training_arguments = SFTConfig(
@@ -155,6 +157,7 @@ else:
         gradient_checkpointing=True,
         dataset_text_field="text",
         max_length=512,
+        report_to="none",
     )
 
 trainer = SFTTrainer(
