@@ -59,8 +59,11 @@ else:
 # ============================================================
 # 辅助函数：统一的模型加载 / 设备放置
 # ============================================================
-def load_peft_model(path):
-    """加载 PeftModel，CUDA 走量化+device_map，MPS/CPU 走 dtype+手动 to"""
+BASE_MODEL_NAME = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
+
+
+def load_base_model():
+    """加载 base model，CUDA 走量化+device_map，MPS/CPU 走 dtype+手动 to"""
     load_kwargs = dict(low_cpu_mem_usage=True)
     if USE_CUDA:
         from transformers import BitsAndBytesConfig
@@ -74,16 +77,15 @@ def load_peft_model(path):
     else:
         load_kwargs.update(DEVICE_PROFILE["model_load_kwargs"])
 
-    model = AutoPeftModelForCausalLM.from_pretrained(path, **load_kwargs)
+    model = AutoModelForCausalLM.from_pretrained(BASE_MODEL_NAME, **load_kwargs)
     if not USE_CUDA:
         model = model.to(DEVICE)
     return model
 
 
-def load_peft_adapter(base_model, adapter_path):
-    """在 base_model 上加载额外的 LoRA adapter"""
-    load_kwargs = dict(device_map="auto") if USE_CUDA else {}
-    model = PeftModel.from_pretrained(base_model, adapter_path, **load_kwargs)
+def load_adapter(base_model, adapter_path):
+    """在 base_model 上加载 LoRA adapter"""
+    model = PeftModel.from_pretrained(base_model, adapter_path)
     if not USE_CUDA:
         model = model.to(DEVICE)
     return model
@@ -117,11 +119,11 @@ dpo_dataset = dpo_dataset.map(format_prompt, remove_columns=dpo_dataset.column_n
 # ============================================================
 # 2. 加载 SFT Adapter 权重 + 合并为基础模型
 # ============================================================
-model = load_peft_model("TinyLlama-1.1B-qlora")
-merged_model = model.merge_and_unload()
+base_model = load_base_model()
+sft_model = load_adapter(base_model, "TinyLlama-1.1B-qlora")
+merged_model = sft_model.merge_and_unload()
 
-model_name = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=False)
+tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL_NAME, trust_remote_code=False)
 tokenizer.pad_token = "<PAD>"
 tokenizer.padding_side = "left"
 
@@ -156,7 +158,6 @@ dpo_base_config = dict(
     gradient_checkpointing=True,
     warmup_ratio=0.1,
     report_to="none",
-    max_prompt_length=512,
     max_length=512,
 )
 dpo_base_config.update(DEVICE_PROFILE["training_overrides"])
@@ -177,8 +178,9 @@ dpo_trainer.model.save_pretrained("TinyLlama-1.1B-dpo-qlora")
 # ============================================================
 # 5. 合并两层 Adapter (SFT + DPO) + 推理
 # ============================================================
-sft_model = load_peft_model("TinyLlama-1.1B-qlora").merge_and_unload()
-dpo_model = load_peft_adapter(sft_model, "TinyLlama-1.1B-dpo-qlora").merge_and_unload()
+base_model2 = load_base_model()
+sft_merged = load_adapter(base_model2, "TinyLlama-1.1B-qlora").merge_and_unload()
+dpo_model = load_adapter(sft_merged, "TinyLlama-1.1B-dpo-qlora").merge_and_unload()
 
 prompt = """<|user|>
 Tell me something about Large Language Models.</s>
