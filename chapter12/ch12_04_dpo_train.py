@@ -159,6 +159,7 @@ dpo_base_config = dict(
     warmup_ratio=0.1,
     report_to="none",
     max_length=512,
+    beta=0.1,
 )
 dpo_base_config.update(DEVICE_PROFILE["training_overrides"])
 training_arguments = DPOConfig(**dpo_base_config)
@@ -169,7 +170,6 @@ dpo_trainer = DPOTrainer(
     train_dataset=dpo_dataset,
     processing_class=tokenizer,
     peft_config=peft_config,
-    beta=0.1,
 )
 
 dpo_trainer.train()
