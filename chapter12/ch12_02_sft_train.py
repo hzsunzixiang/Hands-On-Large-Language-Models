@@ -9,12 +9,11 @@ import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    TrainingArguments,
     pipeline,
 )
 from datasets import load_dataset
 from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model, AutoPeftModelForCausalLM
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 
 # ============================================================
 # 0. 设备检测
@@ -112,7 +111,7 @@ model = get_peft_model(model, peft_config)
 output_dir = "./results"
 
 if USE_CUDA:
-    training_arguments = TrainingArguments(
+    training_arguments = SFTConfig(
         output_dir=output_dir,
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
@@ -123,9 +122,11 @@ if USE_CUDA:
         logging_steps=10,
         fp16=True,
         gradient_checkpointing=True,
+        dataset_text_field="text",
+        max_seq_length=512,
     )
 elif USE_MPS:
-    training_arguments = TrainingArguments(
+    training_arguments = SFTConfig(
         output_dir=output_dir,
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
@@ -134,13 +135,14 @@ elif USE_MPS:
         lr_scheduler_type="cosine",
         num_train_epochs=1,
         logging_steps=10,
-        bf16=True,                       # MPS 上用 bf16 比 fp16 更稳定
+        bf16=True,
         gradient_checkpointing=True,
-        use_mps_device=True,             # 显式启用 MPS
-        dataloader_pin_memory=False,     # MPS 不支持 pinned memory
+        dataloader_pin_memory=False,
+        dataset_text_field="text",
+        max_seq_length=512,
     )
 else:
-    training_arguments = TrainingArguments(
+    training_arguments = SFTConfig(
         output_dir=output_dir,
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
@@ -151,15 +153,15 @@ else:
         logging_steps=10,
         no_cuda=True,
         gradient_checkpointing=True,
+        dataset_text_field="text",
+        max_seq_length=512,
     )
 
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
-    dataset_text_field="text",
     tokenizer=tokenizer,
     args=training_arguments,
-    max_seq_length=512,
     peft_config=peft_config,
 )
 
