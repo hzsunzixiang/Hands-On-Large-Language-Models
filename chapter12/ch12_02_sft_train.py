@@ -5,6 +5,7 @@ Chapter 12 - Part 2: SFT (Supervised Fine-Tuning) 训练
 依赖: 先运行 ch12_01_sft_data_prep.py 中的数据准备逻辑（此处内联）。
 """
 
+import os
 import torch
 from transformers import (
     AutoModelForCausalLM,
@@ -14,6 +15,15 @@ from transformers import (
 from datasets import load_dataset
 from peft import LoraConfig, prepare_model_for_kbit_training, PeftModel
 from trl import SFTTrainer, SFTConfig
+
+# ============================================================
+# 配置 HuggingFace 镜像和超时设置
+# ============================================================
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"  # 加速下载
+# 增加超时时间
+import huggingface_hub
+huggingface_hub.constants.HF_HUB_DOWNLOAD_TIMEOUT = 300  # 5分钟
 
 # ============================================================
 # 0. 设备检测 + 按设备构建差异化参数
@@ -57,7 +67,21 @@ else:
 # ============================================================
 # 1. 数据准备（内联 ch12_01 的逻辑）
 # ============================================================
-template_tokenizer = AutoTokenizer.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+print("[INFO] 正在加载 tokenizer...")
+try:
+    template_tokenizer = AutoTokenizer.from_pretrained(
+        "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        trust_remote_code=True,
+        resume_download=True,
+    )
+    print("[INFO] Tokenizer 加载成功")
+except Exception as e:
+    print(f"[ERROR] Tokenizer 加载失败: {e}")
+    print("[INFO] 尝试使用本地缓存...")
+    template_tokenizer = AutoTokenizer.from_pretrained(
+        "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        local_files_only=True,
+    )
 
 
 def format_prompt(example):
@@ -79,6 +103,7 @@ dataset = dataset.map(format_prompt, remove_columns=dataset.column_names)
 # ============================================================
 model_name = "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T"
 
+print(f"[INFO] 正在加载模型: {model_name}")
 if USE_CUDA:
     from transformers import BitsAndBytesConfig
     bnb_config = BitsAndBytesConfig(
@@ -100,7 +125,9 @@ else:
 model.config.use_cache = False
 model.config.pretraining_tp = 1
 
-tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=False)
+print("[INFO] 正在加载主 tokenizer...")
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True, resume_download=True)
+print("[INFO] Tokenizer 加载完成")
 tokenizer.pad_token = "<PAD>"
 tokenizer.padding_side = "left"
 
