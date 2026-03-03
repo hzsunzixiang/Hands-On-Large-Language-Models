@@ -6,12 +6,11 @@ Chapter 12 - Part 4: DPO (Direct Preference Optimization) 训练
 """
 
 import torch
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from datasets import load_dataset
 from peft import (
     LoraConfig,
     prepare_model_for_kbit_training,
-    AutoPeftModelForCausalLM,
     PeftModel,
 )
 from trl import DPOConfig, DPOTrainer

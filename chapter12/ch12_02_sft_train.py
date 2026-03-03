@@ -12,7 +12,7 @@ from transformers import (
     pipeline,
 )
 from datasets import load_dataset
-from peft import LoraConfig, prepare_model_for_kbit_training, AutoPeftModelForCausalLM
+from peft import LoraConfig, prepare_model_for_kbit_training, PeftModel
 from trl import SFTTrainer, SFTConfig
 
 # ============================================================
@@ -154,15 +154,18 @@ trainer.model.save_pretrained("TinyLlama-1.1B-qlora")
 # ============================================================
 # 5. 合并 Adapter + 推理
 # ============================================================
-merge_kwargs = dict(low_cpu_mem_usage=True)
+# 手动加载 base model + adapter（避免 AutoPeftModelForCausalLM 依赖 adapter_config 中的 base_model_name_or_path）
+base_load_kwargs = dict(low_cpu_mem_usage=True)
 if USE_CUDA:
-    merge_kwargs["device_map"] = "auto"
+    base_load_kwargs["device_map"] = "auto"
 else:
-    merge_kwargs.update(DEVICE_PROFILE["model_load_kwargs"])
+    base_load_kwargs.update(DEVICE_PROFILE["model_load_kwargs"])
 
-merged_model = AutoPeftModelForCausalLM.from_pretrained("TinyLlama-1.1B-qlora", **merge_kwargs)
+base_model = AutoModelForCausalLM.from_pretrained(model_name, **base_load_kwargs)
 if not USE_CUDA:
-    merged_model = merged_model.to(DEVICE)
+    base_model = base_model.to(DEVICE)
+
+merged_model = PeftModel.from_pretrained(base_model, "TinyLlama-1.1B-qlora")
 merged_model = merged_model.merge_and_unload()
 
 prompt = """<|user|>
