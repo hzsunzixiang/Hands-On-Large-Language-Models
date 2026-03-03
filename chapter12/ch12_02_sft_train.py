@@ -12,11 +12,11 @@ from transformers import (
     pipeline,
 )
 from datasets import load_dataset
-from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model, AutoPeftModelForCausalLM
+from peft import LoraConfig, prepare_model_for_kbit_training, AutoPeftModelForCausalLM
 from trl import SFTTrainer, SFTConfig
 
 # ============================================================
-# 0. 设备检测
+# 0. 设备检测 + 按设备构建差异化参数
 # ============================================================
 if torch.cuda.is_available():
     DEVICE = "cuda"
@@ -27,6 +27,24 @@ else:
 
 USE_CUDA = (DEVICE == "cuda")
 USE_MPS = (DEVICE == "mps")
+
+DEVICE_PROFILE = {
+    "cuda": {
+        "model_load_kwargs": {},
+        "model_dtype": None,
+        "training_overrides": dict(optim="paged_adamw_32bit", fp16=True),
+    },
+    "mps": {
+        "model_load_kwargs": dict(dtype=torch.float16),
+        "model_dtype": torch.float16,
+        "training_overrides": dict(optim="adamw_torch", bf16=True, dataloader_pin_memory=False),
+    },
+    "cpu": {
+        "model_load_kwargs": {},
+        "model_dtype": None,
+        "training_overrides": dict(optim="adamw_torch", no_cuda=True),
+    },
+}[DEVICE]
 
 print(f"[INFO] 检测到设备: {DEVICE}")
 if USE_MPS:
@@ -54,7 +72,7 @@ dataset = (
     .shuffle(seed=42)
     .select(range(3_000))
 )
-dataset = dataset.map(format_prompt, remove_columns=dataset.column_names)  # 只保留 "text" 字段
+dataset = dataset.map(format_prompt, remove_columns=dataset.column_names)
 
 # ============================================================
 # 2. 模型加载（CUDA: 4-bit 量化 / MPS: float16 / CPU: float32）
@@ -74,13 +92,10 @@ if USE_CUDA:
         device_map="auto",
         quantization_config=bnb_config,
     )
-elif USE_MPS:
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        dtype=torch.float16,
-    ).to(DEVICE)
 else:
-    model = AutoModelForCausalLM.from_pretrained(model_name)
+    load_kwargs = DEVICE_PROFILE["model_load_kwargs"]
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+    model = model.to(DEVICE)
 
 model.config.use_cache = False
 model.config.pretraining_tp = 1
@@ -103,62 +118,27 @@ peft_config = LoraConfig(
 
 if USE_CUDA:
     model = prepare_model_for_kbit_training(model)
-# 不手动 get_peft_model，让 SFTTrainer 通过 peft_config 自动包装
 
 # ============================================================
-# 4. 训练配置 + SFT 训练
+# 4. 训练配置 + SFT 训练（统一入口，差异化参数）
 # ============================================================
 output_dir = "./results"
 
-if USE_CUDA:
-    training_arguments = SFTConfig(
-        output_dir=output_dir,
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        optim="paged_adamw_32bit",
-        learning_rate=2e-4,
-        lr_scheduler_type="cosine",
-        num_train_epochs=1,
-        logging_steps=10,
-        fp16=True,
-        gradient_checkpointing=True,
-        dataset_text_field="text",
-        max_length=512,
-        report_to="none",
-    )
-elif USE_MPS:
-    training_arguments = SFTConfig(
-        output_dir=output_dir,
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        optim="adamw_torch",
-        learning_rate=2e-4,
-        lr_scheduler_type="cosine",
-        num_train_epochs=1,
-        logging_steps=10,
-        bf16=True,
-        gradient_checkpointing=True,
-        dataloader_pin_memory=False,
-        dataset_text_field="text",
-        max_length=512,
-        report_to="none",
-    )
-else:
-    training_arguments = SFTConfig(
-        output_dir=output_dir,
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        optim="adamw_torch",
-        learning_rate=2e-4,
-        lr_scheduler_type="cosine",
-        num_train_epochs=1,
-        logging_steps=10,
-        no_cuda=True,
-        gradient_checkpointing=True,
-        dataset_text_field="text",
-        max_length=512,
-        report_to="none",
-    )
+sft_base_config = dict(
+    output_dir=output_dir,
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
+    lr_scheduler_type="cosine",
+    num_train_epochs=1,
+    logging_steps=10,
+    gradient_checkpointing=True,
+    dataset_text_field="text",
+    max_length=512,
+    report_to="none",
+)
+sft_base_config.update(DEVICE_PROFILE["training_overrides"])
+training_arguments = SFTConfig(**sft_base_config)
 
 trainer = SFTTrainer(
     model=model,
@@ -169,31 +149,20 @@ trainer = SFTTrainer(
 )
 
 trainer.train()
-
-# Save LoRA/QLoRA weights
 trainer.model.save_pretrained("TinyLlama-1.1B-qlora")
 
 # ============================================================
 # 5. 合并 Adapter + 推理
 # ============================================================
+merge_kwargs = dict(low_cpu_mem_usage=True)
 if USE_CUDA:
-    merged_model = AutoPeftModelForCausalLM.from_pretrained(
-        "TinyLlama-1.1B-qlora",
-        low_cpu_mem_usage=True,
-        device_map="auto",
-    )
-elif USE_MPS:
-    merged_model = AutoPeftModelForCausalLM.from_pretrained(
-        "TinyLlama-1.1B-qlora",
-        low_cpu_mem_usage=True,
-        dtype=torch.float16,
-    ).to(DEVICE)
+    merge_kwargs["device_map"] = "auto"
 else:
-    merged_model = AutoPeftModelForCausalLM.from_pretrained(
-        "TinyLlama-1.1B-qlora",
-        low_cpu_mem_usage=True,
-    )
+    merge_kwargs.update(DEVICE_PROFILE["model_load_kwargs"])
 
+merged_model = AutoPeftModelForCausalLM.from_pretrained("TinyLlama-1.1B-qlora", **merge_kwargs)
+if not USE_CUDA:
+    merged_model = merged_model.to(DEVICE)
 merged_model = merged_model.merge_and_unload()
 
 prompt = """<|user|>
@@ -205,7 +174,7 @@ pipe = pipeline(
     task="text-generation",
     model=merged_model,
     tokenizer=tokenizer,
-    device=DEVICE if DEVICE != "cuda" else None,  # CUDA 用 device_map，MPS/CPU 手动指定
+    device=DEVICE if DEVICE != "cuda" else None,
 )
 print("\n" + "=" * 60)
 print("SFT 模型推理结果:")
