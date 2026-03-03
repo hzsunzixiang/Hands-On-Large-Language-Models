@@ -103,7 +103,7 @@ peft_config = LoraConfig(
 
 if USE_CUDA:
     model = prepare_model_for_kbit_training(model)
-model = get_peft_model(model, peft_config)
+# 不手动 get_peft_model，让 SFTTrainer 通过 peft_config 自动包装
 
 # ============================================================
 # 4. 训练配置 + SFT 训练
@@ -160,7 +160,7 @@ else:
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
     args=training_arguments,
     peft_config=peft_config,
 )
