@@ -77,7 +77,7 @@ if USE_CUDA:
 elif USE_MPS:
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
     ).to(DEVICE)
 else:
     model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -123,7 +123,7 @@ if USE_CUDA:
         fp16=True,
         gradient_checkpointing=True,
         dataset_text_field="text",
-        max_seq_length=512,
+        max_length=512,
     )
 elif USE_MPS:
     training_arguments = SFTConfig(
@@ -139,7 +139,7 @@ elif USE_MPS:
         gradient_checkpointing=True,
         dataloader_pin_memory=False,
         dataset_text_field="text",
-        max_seq_length=512,
+        max_length=512,
     )
 else:
     training_arguments = SFTConfig(
@@ -154,7 +154,7 @@ else:
         no_cuda=True,
         gradient_checkpointing=True,
         dataset_text_field="text",
-        max_seq_length=512,
+        max_length=512,
     )
 
 trainer = SFTTrainer(
@@ -183,7 +183,7 @@ elif USE_MPS:
     merged_model = AutoPeftModelForCausalLM.from_pretrained(
         "TinyLlama-1.1B-qlora",
         low_cpu_mem_usage=True,
-        torch_dtype=torch.float16,
+        dtype=torch.float16,
     ).to(DEVICE)
 else:
     merged_model = AutoPeftModelForCausalLM.from_pretrained(
