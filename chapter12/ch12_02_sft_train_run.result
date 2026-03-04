@@ -65,3 +65,66 @@ Large Language Models can be used for a variety of purposes, including generatin
 One of the most common applications of LLMs is in computer vision, where they are used to generate images or videos based on text or other inputs. For example, a LLM can be trained to generate images from text based on a specific theme or genre, such as art or fashion.
 
 Large Language Models are becoming more and more common in the natural language processing industry, with Google, Microsoft, Facebook, and other companies using them to develop products and services. The use of LLMs in these companies has led to the development of new technologies and advancements that are helping to transform the way we communicate and interact with each other.
+
+
+============================================================
+训练结果分析
+============================================================
+
+## 训练配置
+
+  项目                值
+  ----                --
+  设备                Apple MPS (M系列芯片 GPU)
+  模型                TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T
+  微调方法            LoRA（非量化）+ bf16 + adamw_torch
+  总步数              375 steps
+  Epoch               1.0（完整跑完 1 个 epoch）
+  总耗时              1小时10分42秒（~11.31s/step）
+
+## 训练过程分析
+
+### Loss 变化趋势
+  - 起始 loss: 1.7985（step ~6）
+  - 最终 loss: 1.465（step ~374）
+  - 平均 train_loss: 1.4434
+  - Loss 从 ~1.80 下降到 ~1.35-1.46 区间，整体呈下降趋势，但后半段波动较大，
+    说明 1 个 epoch 已接近收敛。
+
+### Token Accuracy 变化
+  - 起始 accuracy: 0.5904（59%）
+  - 最终 accuracy: 0.6633（66.3%）
+  - 从 59% 提升到 66%，约 7 个百分点的提升，说明模型在指令跟随方面有改善。
+
+### Entropy 变化
+  - 起始: 2.037 -> 最终: 1.39
+  - 熵值持续下降，说明模型输出分布越来越集中、更"自信"。
+
+### Learning Rate
+  - 从 2e-4 按 cosine schedule 衰减到接近 0，调度正常。
+
+### Grad Norm
+  - 稳定在 0.20~0.36 范围，没有出现梯度爆炸，训练很稳定。
+
+## 推理结果评估
+
+  训练后模型对 "Tell me something about Large Language Models" 的回复：
+
+  优点: 回答流畅、结构化，涵盖了 LLM 的定义、应用场景（NLP、CV、翻译、聊天机器人）
+        和行业应用。
+  问题: 提到 "LLM 在计算机视觉中最常见的应用" 这个说法不太准确——LLM 主要是语言模型，
+        CV 更多是 diffusion model 等其他架构的领域。这说明 TinyLlama 1.1B 的知识
+        准确性有限。
+
+## 总结
+
+  指标          评价
+  ----          ----
+  训练稳定性    良好，grad norm 平稳
+  Loss 收敛     从 1.80 降至 ~1.44
+  Accuracy 提升 59% -> 66%
+  训练速度      11.3s/step（MPS 设备，正常水平）
+  生成质量      流畅但有事实错误（1.1B 小模型的固有局限）
+
+  整体来看，这次 SFT 训练是成功的——模型正常收敛，LoRA 微调在 MPS 上运行稳定。
+  如果想进一步提升效果，可以考虑训练更多 epoch（2~3）或使用更大的模型。
