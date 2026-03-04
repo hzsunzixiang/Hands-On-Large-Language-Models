@@ -1,0 +1,67 @@
+[ericksun@ERICKSUN-MC1:chapter12] (d2l_3.13) (main +%)$ python ch12_02_sft_train.py
+[INFO] 检测到设备: mps
+[INFO] MPS 模式: 使用 LoRA (非量化) + bf16 + adamw_torch
+[INFO] 正在加载 tokenizer...
+/opt/homebrew/Caskroom/miniconda/base/envs/d2l_3.13/lib/python3.13/site-packages/huggingface_hub/file_download.py:942: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+[INFO] Tokenizer 加载成功
+[INFO] 正在加载模型: TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T
+[INFO] 正在加载主 tokenizer...
+[INFO] Tokenizer 加载完成
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'pad_token_id': 0}.
+{'loss': 1.7985, 'grad_norm': 0.3242170810699463, 'learning_rate': 0.0001997158900260614, 'entropy': 2.0365126579999924, 'num_tokens': 40863.0, 'mean_token_accuracy': 0.5904316127300262, 'epoch': 0.03}
+  4%|█████▌                                                                                                                            | 16/375 [02:59<1:06:37, 11.14s/it]{'loss': 1.5458, 'grad_norm': 0.36135685443878174, 'learning_rate': 0.00019873585390151003, 'entropy': 1.5992469668388367, 'num_tokens': 81582.0, 'mean_token_accuracy': 0.631095378100872, 'epoch': 0.05}
+{'loss': 1.4999, 'grad_norm': 0.26095297932624817, 'learning_rate': 0.00019706325670345275, 'entropy': 1.5234449803829193, 'num_tokens': 122436.0, 'mean_token_accuracy': 0.6403944566845894, 'epoch': 0.08}
+{'loss': 1.5262, 'grad_norm': 0.25214457511901855, 'learning_rate': 0.00019470983049947444, 'entropy': 1.5603995516896247, 'num_tokens': 163266.0, 'mean_token_accuracy': 0.6359236650168896, 'epoch': 0.11}
+{'loss': 1.5109, 'grad_norm': 0.23725207149982452, 'learning_rate': 0.00019169208288346166, 'entropy': 1.5620705395936967, 'num_tokens': 203296.0, 'mean_token_accuracy': 0.6341007009148598, 'epoch': 0.13}
+{'loss': 1.4238, 'grad_norm': 0.23494625091552734, 'learning_rate': 0.00018803118118669202, 'entropy': 1.4622256696224212, 'num_tokens': 243690.0, 'mean_token_accuracy': 0.6536045417189598, 'epoch': 0.16}
+{'loss': 1.5367, 'grad_norm': 0.2653093934059143, 'learning_rate': 0.0001837528040042142, 'entropy': 1.578474149107933, 'num_tokens': 284500.0, 'mean_token_accuracy': 0.6334039956331253, 'epoch': 0.19}
+{'loss': 1.4793, 'grad_norm': 0.22256414592266083, 'learning_rate': 0.00017888696107795342, 'entropy': 1.5429340124130249, 'num_tokens': 325106.0, 'mean_token_accuracy': 0.645065539330244, 'epoch': 0.21}
+{'loss': 1.4581, 'grad_norm': 0.24298912286758423, 'learning_rate': 0.00017346778279993415, 'entropy': 1.5101992249488831, 'num_tokens': 365710.0, 'mean_token_accuracy': 0.6451864570379258, 'epoch': 0.24}
+{'loss': 1.4366, 'grad_norm': 0.24638590216636658, 'learning_rate': 0.00016753328081210245, 'entropy': 1.4705406159162522, 'num_tokens': 405595.0, 'mean_token_accuracy': 0.6572836443781853, 'epoch': 0.27}
+{'loss': 1.4392, 'grad_norm': 0.2443818747997284, 'learning_rate': 0.00016112508138196917, 'entropy': 1.5150455772876739, 'num_tokens': 446389.0, 'mean_token_accuracy': 0.646038955450058, 'epoch': 0.29}
+{'loss': 1.3996, 'grad_norm': 0.24243825674057007, 'learning_rate': 0.00015428813342425177, 'entropy': 1.4588783413171769, 'num_tokens': 487018.0, 'mean_token_accuracy': 0.6541297480463981, 'epoch': 0.32}
+{'loss': 1.3554, 'grad_norm': 0.22645674645900726, 'learning_rate': 0.0001470703932165333, 'entropy': 1.4100846469402313, 'num_tokens': 527475.0, 'mean_token_accuracy': 0.667303304374218, 'epoch': 0.35}
+{'loss': 1.5215, 'grad_norm': 0.23189525306224823, 'learning_rate': 0.00013952248802043165, 'entropy': 1.5553316295146942, 'num_tokens': 567969.0, 'mean_token_accuracy': 0.6351517125964165, 'epoch': 0.37}
+{'loss': 1.3657, 'grad_norm': 0.29008835554122925, 'learning_rate': 0.0001316973609677352, 'entropy': 1.4425470411777497, 'num_tokens': 608624.0, 'mean_token_accuracy': 0.6619044922292232, 'epoch': 0.4}
+{'loss': 1.4343, 'grad_norm': 0.22662673890590668, 'learning_rate': 0.00012364989970237248, 'entropy': 1.4822650626301765, 'num_tokens': 649415.0, 'mean_token_accuracy': 0.6478830307722092, 'epoch': 0.43}
+{'loss': 1.4809, 'grad_norm': 0.196722611784935, 'learning_rate': 0.00011543655138302714, 'entropy': 1.5221301004290582, 'num_tokens': 689741.0, 'mean_token_accuracy': 0.6394303366541862, 'epoch': 0.45}
+{'loss': 1.3441, 'grad_norm': 0.2646525502204895, 'learning_rate': 0.00010711492674687671, 'entropy': 1.405899879336357, 'num_tokens': 730153.0, 'mean_token_accuracy': 0.6633696839213371, 'epoch': 0.48}
+{'loss': 1.4371, 'grad_norm': 0.20975080132484436, 'learning_rate': 9.874339601166473e-05, 'entropy': 1.4998402088880538, 'num_tokens': 770957.0, 'mean_token_accuracy': 0.6531926810741424, 'epoch': 0.51}
+{'loss': 1.4954, 'grad_norm': 0.22755984961986542, 'learning_rate': 9.038067945056227e-05, 'entropy': 1.5458530068397522, 'num_tokens': 811034.0, 'mean_token_accuracy': 0.6415078409016133, 'epoch': 0.53}
+{'loss': 1.4274, 'grad_norm': 0.22475092113018036, 'learning_rate': 8.208543551164178e-05, 'entropy': 1.4913705706596374, 'num_tokens': 851543.0, 'mean_token_accuracy': 0.6506357781589032, 'epoch': 0.56}
+{'loss': 1.3544, 'grad_norm': 0.22097083926200867, 'learning_rate': 7.391584937101033e-05, 'entropy': 1.425499787926674, 'num_tokens': 891829.0, 'mean_token_accuracy': 0.6603388294577599, 'epoch': 0.59}
+{'loss': 1.378, 'grad_norm': 0.21701709926128387, 'learning_rate': 6.592922480560483e-05, 'entropy': 1.4164689660072327, 'num_tokens': 931963.0, 'mean_token_accuracy': 0.6614327177405357, 'epoch': 0.61}
+{'loss': 1.4136, 'grad_norm': 0.21999268233776093, 'learning_rate': 5.818158224836987e-05, 'entropy': 1.4693497642874718, 'num_tokens': 972674.0, 'mean_token_accuracy': 0.654067562520504, 'epoch': 0.64}
+{'loss': 1.3694, 'grad_norm': 0.22117246687412262, 'learning_rate': 5.072726584517086e-05, 'entropy': 1.4339312434196472, 'num_tokens': 1013204.0, 'mean_token_accuracy': 0.6602361321449279, 'epoch': 0.67}
+{'loss': 1.3639, 'grad_norm': 0.22860270738601685, 'learning_rate': 4.361856226965733e-05, 'entropy': 1.4341876536607743, 'num_tokens': 1053839.0, 'mean_token_accuracy': 0.6611770257353783, 'epoch': 0.69}
+{'loss': 1.4785, 'grad_norm': 0.22413846850395203, 'learning_rate': 3.6905333969815026e-05, 'entropy': 1.5100714042782784, 'num_tokens': 1094595.0, 'mean_token_accuracy': 0.6491971410810947, 'epoch': 0.72}
+{'loss': 1.4556, 'grad_norm': 0.2636134624481201, 'learning_rate': 3.063466941871952e-05, 'entropy': 1.5049768373370171, 'num_tokens': 1135098.0, 'mean_token_accuracy': 0.6455388925969601, 'epoch': 0.75}
+{'loss': 1.4057, 'grad_norm': 0.23443196713924408, 'learning_rate': 2.48505528227304e-05, 'entropy': 1.4601807966828346, 'num_tokens': 1175438.0, 'mean_token_accuracy': 0.6550483867526055, 'epoch': 0.77}
+{'loss': 1.3883, 'grad_norm': 0.197188600897789, 'learning_rate': 1.9593555603886538e-05, 'entropy': 1.4345696404576302, 'num_tokens': 1215790.0, 'mean_token_accuracy': 0.6579617351293564, 'epoch': 0.8}
+{'loss': 1.4123, 'grad_norm': 0.21642759442329407, 'learning_rate': 1.490055182053084e-05, 'entropy': 1.4511050894856452, 'num_tokens': 1256498.0, 'mean_token_accuracy': 0.656944764405489, 'epoch': 0.83}
+{'loss': 1.4548, 'grad_norm': 0.21784399449825287, 'learning_rate': 1.0804459522284926e-05, 'entropy': 1.50202317237854, 'num_tokens': 1297258.0, 'mean_token_accuracy': 0.6506586864590644, 'epoch': 0.85}
+{'loss': 1.4035, 'grad_norm': 0.22012339532375336, 'learning_rate': 7.3340098535827905e-06, 'entropy': 1.4603521466255187, 'num_tokens': 1338092.0, 'mean_token_accuracy': 0.6552539423108101, 'epoch': 0.88}
+{'loss': 1.3989, 'grad_norm': 0.20631837844848633, 'learning_rate': 4.513545525335705e-06, 'entropy': 1.460843840241432, 'num_tokens': 1378622.0, 'mean_token_accuracy': 0.6537290677428246, 'epoch': 0.91}
+{'loss': 1.331, 'grad_norm': 0.21461623907089233, 'learning_rate': 2.3628500683055222e-06, 'entropy': 1.3849923506379127, 'num_tokens': 1419005.0, 'mean_token_accuracy': 0.6701515495777131, 'epoch': 0.93}
+{'loss': 1.4569, 'grad_norm': 0.21822674572467804, 'learning_rate': 8.970090658507291e-07, 'entropy': 1.4936360001564026, 'num_tokens': 1459448.0, 'mean_token_accuracy': 0.6445975437760353, 'epoch': 0.96}
+{'loss': 1.465, 'grad_norm': 0.20885461568832397, 'learning_rate': 1.2630433939825327e-07, 'entropy': 1.5129153922200202, 'num_tokens': 1498886.0, 'mean_token_accuracy': 0.6477006539702416, 'epoch': 0.99}
+{'train_runtime': 4242.5699, 'train_samples_per_second': 0.707, 'train_steps_per_second': 0.088, 'train_loss': 1.4434275487263997, 'entropy': 1.390552920103073, 'num_tokens': 1519310.0, 'mean_token_accuracy': 0.6633540213108062, 'epoch': 1.0}
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 375/375 [1:10:42<00:00, 11.31s/it]
+Device set to use mps
+
+============================================================
+SFT 模型推理结果:
+============================================================
+<|user|>
+Tell me something about Large Language Models.</s>
+<|assistant|>
+Large Language Models or LLMs are a type of artificial intelligence that can be used for natural language processing. This is where the machine learns to understand and generate text from natural language input.
+
+The LLM is a deep neural network that uses a large amount of data to learn the language. This data can come from text or spoken language. The LLM has the ability to understand complex language and generate text based on this understanding.
+
+Large Language Models can be used for a variety of purposes, including generating text for news articles, summarizing information, or generating educational materials. They can also be used to generate machine translation or to create chatbots that can respond to users in natural language.
+
+One of the most common applications of LLMs is in computer vision, where they are used to generate images or videos based on text or other inputs. For example, a LLM can be trained to generate images from text based on a specific theme or genre, such as art or fashion.
+
+Large Language Models are becoming more and more common in the natural language processing industry, with Google, Microsoft, Facebook, and other companies using them to develop products and services. The use of LLMs in these companies has led to the development of new technologies and advancements that are helping to transform the way we communicate and interact with each other.
