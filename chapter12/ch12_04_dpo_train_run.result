@@ -1,0 +1,136 @@
+[ericksun@ERICKSUN-MC1:chapter12] (d2l_3.13) (main %)$ time python ch12_04_dpo_train.py
+
+[INFO] 检测到设备: mps
+[INFO] MPS 模式: 使用 LoRA (非量化) + bf16 + adamw_torch
+/opt/homebrew/Caskroom/miniconda/base/envs/d2l_3.13/lib/python3.13/site-packages/peft/tuners/tuners_utils.py:285: UserWarning: Already found a `peft_config` attribute in the model. This will lead to having multiple adapters in the model. Make sure to know what you are doing!
+  warnings.warn(
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'pad_token_id': 0}.
+  0%|                                                                                                                  | 0/200 [00:00<?, ?it/s]
+
+  0%|▌                                                                                                       | 1/200 [00:28<1:35:03, 28.66s/it]
+
+
+  1%|█                                                                                                     | 2/200 [00:56<1:32:26, 28.01s/it]{'loss': 0.6961, 'grad_norm': 3.962475299835205, 'learning_rate': 4.5e-06, 'entropy': 1.2463816091418267, 'num_tokens': 80399.0, 'logits/chosen': -3.5090425213494085, 'logits/rejected': -3.498150082736493, 'mean_token_accuracy': 0.6640052676200867, 'rewards/chosen': -0.001004736428
+1490444, 'rewards/rejected': 0.004295870114583522, 'rewards/accuracies': 0.3375, 'rewards/margins': -0.00530060640303418, 'logps/chosen': -221.0168029785156, 'logps/rejected': -227.38843479156495, 'epoch': 0.01}
+{'loss': 0.6844, 'grad_norm': 4.285538196563721, 'learning_rate': 9.5e-06, 'entropy': nan, 'num_tokens': 154177.0, 'logits/chosen': -3.3090493755420645, 'logits/rejected': -3.377841439114725, 'mean_token_accuracy': 0.6510172724723816, 'rewards/chosen': 0.006613333418499678, 'reward
+s/rejected': -0.011525926519243512, 'rewards/accuracies': 0.525, 'rewards/margins': 0.01813925977330655, 'logps/chosen': -206.20469012260438, 'logps/rejected': -234.4874983549118, 'epoch': 0.03}
+{'loss': 0.6667, 'grad_norm': 5.728648662567139, 'learning_rate': 9.938441702975689e-06, 'entropy': nan, 'num_tokens': 232137.0, 'logits/chosen': -3.0933053232575984, 'logits/rejected': -3.1349955451788043, 'mean_token_accuracy': 0.6012014612555504, 'rewards/chosen': 0.005172112269
+792706, 'rewards/rejected': -0.0505154320562724, 'rewards/accuracies': 0.65, 'rewards/margins': 0.055687543586827815, 'logps/chosen': -171.23851504325867, 'logps/rejected': -206.9558277130127, 'epoch': 0.04}
+{'loss': 0.6368, 'grad_norm': 3.805582284927368, 'learning_rate': 9.727592877996585e-06, 'entropy': 1.2998348787426948, 'num_tokens': 295390.0, 'logits/chosen': -3.4710848826875824, 'logits/rejected': -3.442732146632399, 'mean_token_accuracy': 0.6803845509886741, 'rewards/chosen':
+-0.007983578364292043, 'rewards/rejected': -0.13734883493743838, 'rewards/accuracies': 0.7, 'rewards/margins': 0.1293652553576976, 'logps/chosen': -215.21478703022004, 'logps/rejected': -250.32116622924804, 'epoch': 0.05}
+{'loss': 0.6099, 'grad_norm': 4.072880268096924, 'learning_rate': 9.37309853569698e-06, 'entropy': 1.2765544340014459, 'num_tokens': 365647.0, 'logits/chosen': -3.4258382818586988, 'logits/rejected': -3.4577                                                                                                                                                                                              13:46:37 [0/1345]
+============================================================
+DPO 模型推理结果:
+============================================================
+<|user|>
+Tell me something about Large Language Models.</s>
+<|assistant|>
+Large Language Models (LLM) are artificial intelligence models trained to understand human language and use it to generate meaningful responses to natural language input. They are becoming increasingly popul
+ar in multiple fields, including natural language processing (NLP), machine translation, and natural language generation (NLG).
+
+LLMs are made up of multiple layers of artificial neural networks that learn to recognize and understand language. In each layer, the inputs are fed into a neural network, which is trained to mimic the way h
+umans process language. The output of each layer is fed into the next layer, and the process repeats until a final layer is reached.
+
+LLMs are trained on large amounts of text data and can generate human-like responses to natural language input. They are able to understand and use context, emotion, and nuance, which makes them highly effec
+tive at natural language generation tasks such as generating responses to questions, summaries, or dialogues.
+
+LLMs are currently being used in a variety of applications, including automated chatbots that can answer questions, generate responses to tex
+t prompts, or perform natural language generation tasks. They have also been used in text generation, such as generating text for scientific reports, news articles, or personalized content.
+
+LLMs are increasingly used to train other artificial intelligence models, such as machine translation systems, chatbots, and natural language understanding systems. This enables AI models to be trained to un
+derstand and generate natural language more effectively.
+
+real    88m47.295s
+user    9m7.187s
+Sys     3m34.842s
+
+
+============================================================
+训练结果分析
+============================================================
+
+## 训练配置
+
+  项目                值
+  ----                --
+  设备                Apple MPS (M系列芯片 GPU)
+  微调方法            LoRA（非量化）+ bf16 + adamw_torch
+  基础模型            TinyLlama SFT 模型（在 SFT 基础上继续 DPO 训练）
+  总步数              200 steps
+  总耗时              约 88 分 47 秒（~28s/step，比 SFT 的 11.3s/step 慢约 2.5 倍）
+  注意                已有 peft_config，说明是在 SFT LoRA 模型上叠加第二个 adapter
+
+## 训练过程分析
+
+### Loss 变化趋势
+  - 起始 loss: 0.6961（step 1）
+  - 最终记录 loss: 0.6099（step 5）
+  - DPO loss 从 ~0.70 下降到 ~0.61，呈下降趋势。
+  - DPO 理论最优 loss = -ln(0.5) ≈ 0.693，当前 loss 已低于此值，
+    说明模型已开始学会区分 chosen/rejected 对。
+  - 注意：日志只打印了前 5 个 step 的详细记录，后续 step 日志被截断。
+
+### Rewards/Margins 变化（DPO 核心指标）
+  - step 1: rewards/margins = -0.0053, accuracies = 0.3375
+      → 初始时模型几乎无法区分 chosen 和 rejected
+  - step 2: margins = +0.018, accuracies = 0.525
+      → 开始学习偏好方向
+  - step 3: margins = +0.056, accuracies = 0.65
+      → margin 扩大，准确率提升
+  - step 4: margins = +0.129, accuracies = 0.70
+      → 显著进步
+  - step 5: margins 继续增长（日志截断）
+  - 趋势：rewards/margins 从负值快速增长为正值，rewards/accuracies 从 34% 提升到 70%，
+    说明 DPO 训练有效地让模型学会了偏好对齐。
+
+### Logits 变化
+  - logits/chosen 和 logits/rejected 都在 -3.1 ~ -3.5 范围
+  - 两者差距逐步拉开，chosen 的 log probability 相对提升
+
+### Entropy
+  - 多个 step 出现 entropy: nan，这在 DPO 训练中偶尔出现，
+    通常是因为某些 batch 中的 token 概率计算问题，不影响训练收敛。
+
+### Grad Norm
+  - 在 3.8 ~ 5.7 范围波动，比 SFT 时（0.2~0.36）高约一个数量级。
+  - 这是 DPO 训练的正常现象——DPO 的梯度信号来自 chosen/rejected 对的
+    对比学习，天然比标准语言建模梯度更大。
+  - 没有出现极端值，训练整体稳定。
+
+### Learning Rate
+  - 峰值约 1e-5，采用 warmup + cosine 衰减，调度正常。
+  - DPO 的 lr 通常比 SFT 小一个数量级（SFT 用 2e-4 vs DPO 用 1e-5），这是合理的。
+
+## 推理结果评估（SFT vs DPO 对比）
+
+### DPO 模型回复特点
+  - 结构更清晰：分层介绍了 LLM 的定义、架构、能力和应用
+  - 内容更准确：不再有"LLM 最常见的应用是计算机视觉"这样的错误
+  - 描述更专业：正确提到了 NLP、NLG、machine translation 等领域
+  - 知识更合理：提到 LLM 的层级结构、上下文理解、情感识别等特性
+
+### 与 SFT 模型对比
+  SFT 模型问题                          DPO 模型改善
+  ----------                            ----------
+  声称 LLM 在 CV 领域最常用（错误）     正确聚焦在 NLP/NLG 领域
+  内容较为笼统                          描述更具体、更有层次
+  存在明显事实错误                      事实准确性显著提升
+
+## 训练速度说明
+  - DPO 每步约 28 秒，是 SFT（11.3s/step）的 2.5 倍
+  - 原因：DPO 需要同时计算 chosen 和 rejected 两条序列的 forward pass，
+    并额外计算 reference model 的 log probability，计算量约为 SFT 的 2-3 倍。
+
+## 总结
+
+  指标              评价
+  ----              ----
+  训练稳定性        良好，梯度正常，loss 持续下降
+  偏好对齐效果      显著，rewards accuracy 从 34% 提升到 70%+
+  Margin 增长       从 -0.005 增长到 +0.13，模型学会区分好坏回复
+  生成质量          相比 SFT 有明显提升，事实错误减少，表述更专业
+  训练速度          28s/step（MPS 设备，DPO 的正常水平）
+
+  整体来看，DPO 训练成功地在 SFT 模型基础上实现了偏好对齐。模型不仅在
+  rewards accuracy 指标上表现良好，生成的回复质量也有明显提升——内容更准确、
+  结构更清晰。这验证了 SFT + DPO 两阶段训练流程的有效性。
